@@ -115,7 +115,7 @@
   }
 
   :deep(.el-carousel__container) {
-    height: 350px !important;
+    height: 300px !important;
     border-radius: 10px;
     overflow: hidden !important;
   }

@@ -129,8 +129,8 @@ const forYou = forYouList
     text-decoration: line-through;
 }
 
-.discount-text {
-    color: #ff424f;
+.discount-badge  {
+    color: #f11523;
     font-size: 0.75rem;
     font-weight: 900;
     font-family: 'Lato', sans-serif;

@@ -52,7 +52,7 @@
 
   function countDown() {
     const now = new Date();
-    const endDate = new Date('2025-07-11T12:00:00');
+    const endDate = new Date('2025-08-11T12:00:00');
     const timeDiff = endDate.getTime() - now.getTime();
 
     if(timeDiff <= 0) {
