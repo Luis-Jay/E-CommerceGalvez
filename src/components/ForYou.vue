@@ -19,9 +19,9 @@
                 </div>
   
                 <div class="product-info">
-                  <h3 class="product-title">{{ truncateString(item.name, 50) }}</h3>
+                  <h3 class="product-title">{{ truncateString(item.name || '', 50) }}</h3>
                   <div class="price-section">
-                    <div class="current-price">₱{{ item.price.toLocaleString() }}</div>
+                    <div class="current-price">₱{{ (item.price ?? 0).toLocaleString() }}</div>
                     <div class="original-price" v-if="item.originalPrice">
                       ₱{{ item.originalPrice.toLocaleString() }}
                     </div>
@@ -33,7 +33,6 @@
               </el-card>
             </div>
             <!-- End repeat -->
-  
           </div>
         </div>
       </div>

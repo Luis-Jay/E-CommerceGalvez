@@ -24,6 +24,7 @@
           :key="item.id"
           class="product-card"
           shadow="never"
+          @click="goToProduct(item.id)"
         >
           <div class="product-image-container">
             <img :src="item.image" alt="product" class="product-image" />
@@ -31,6 +32,7 @@
           </div>
   
           <div class="product-info">
+            
             <h3 class="product-title">{{ truncateString(item.name, 35) }}</h3>
             <div class="price-section">
               <div class="current-price">₱{{ item.price.toLocaleString() }}</div>
@@ -38,6 +40,9 @@
               <div class="discount-text" v-if="item.discount">-{{ item.discount }}%</div>
             </div>
           </div>
+          <span class="cart-icon" @click.stop="addToCart(item)">
+            <el-icon><ShoppingCart /></el-icon>
+          </span>
         </el-card>
       </div>
     </section>
@@ -47,6 +52,43 @@
   <script setup lang="ts">
   import { truncateString } from '@/utils/truncate'
  import { itemList } from '@/constants/Data'
+ import { useRouter } from 'vue-router'
+ import { ShoppingCart } from '@element-plus/icons-vue'
+ import { useCartStore } from '@/stores/cartStore'
+ import { useAuthStore } from '@/stores/authStore'
+ import { showMessageOnce } from '@/utils/showMessageOnce'
+ import { ref } from 'vue'
+
+ const router = useRouter()
+ const cartStore = useCartStore()
+ const authStore = useAuthStore()
+ const product = ref<any | null>(null);
+
+ function goToProduct(id: string | number) {
+  router.push({ name: 'ProductPage', params: { id } })
+ }
+
+ function addToCart(item: any) {
+  // Transform product data to CartItem format
+  const cartItem = {
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity: 1,
+    image: Array.isArray(item.image) ? item.image[0] : item.image,
+    size: '',
+    color: '',
+    currentPrice: item.price,
+    originalPrice: item.originalPrice || item.price,
+    onSale: item.originalPrice && item.originalPrice > item.price,
+    totalPrice: item.price,
+    deliveryOption: 'DPD',
+    deliveryFee: 0
+  }
+  authStore.addToUserCart(cartItem)
+  showMessageOnce('Added to cart!', 'success')
+  console.log('user cart items:', authStore.currentUser?.cartItems)
+}
 
   const items = itemList
 
@@ -185,6 +227,7 @@
     border: none;
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
   }
   
   .product-card:hover {
@@ -256,6 +299,23 @@
     color: #ff424f;
     font-size: 0.75rem;
     font-weight: 500;
+  }
+  
+  .cart-icon {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    z-index: 2;
+    cursor: pointer;
+    font-size: 24px;
+    background: white;
+    border-radius: 50%;
+    padding: 6px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .cart-icon:hover {
+
+    color: rgb(112, 204, 247);
   }
   
   @media (max-width: 768px) {

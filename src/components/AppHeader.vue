@@ -1,16 +1,21 @@
 <!-- components/AppHeader.vue -->
 <template>
     <el-header class="app-header">
-      <div class="logo">DigiShop++</div>
+      <div class="logo" @click="router.push('/')">DigiShop++</div>
       <div class="search-container">
         <AppSearch />
       </div>
       <div class="header-actions">
         <div class="cart">
+          <el-button
+          class="cart-button"
+            @click="authStore.isAuthenticated ? router.push('/shopping-cart') : (uiStore.showLoginModal = true)"
+          >
           <el-icon size="43" color="#0a1569"><ShoppingCart /></el-icon>
+          </el-button>
         </div>
         
-        <div class="user-profile">
+        <div class="user-profile" v-if="authStore.isAuthenticated">
           <el-dropdown trigger="click" @command="handleUserAction">
             <div class="avatar-container">
               <el-avatar
@@ -44,25 +49,41 @@
                   Logout
                 </el-dropdown-item>
               </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+              </template>
+            </el-dropdown>
+          </div>
+
+        <div class="user-profile" v-else>
+          <LoginRegister />
         </div>
       </div>
     </el-header>
     
   </template>
+
   
   <script setup lang="ts">
   import { ShoppingCart, ArrowDown, User, Document, Star, Setting, SwitchButton } from '@element-plus/icons-vue'
   import AppSearch from '@/components/AppSearch.vue'
   import { ElMessage } from 'element-plus'
   import { useRouter } from 'vue-router'
+  import { useAuthStore } from '@/stores/authStore'
+  import { onMounted, watchEffect } from 'vue'
+  import LoginRegister from '@/components/LoginRegister.vue'
+  import { computed } from 'vue'
+  import { useAuth } from '@/stores/useAuth'    
+  import { useModalStore } from '@/stores/useModalStore'
+
+
   const router = useRouter()
+  const authStore = useAuthStore()
+  const uiStore = useModalStore()
+
 
   const handleUserAction = (command: string) => {
     switch (command) {
       case 'profile':
-        router.push('/profile')
+        router.push({path: '/profile', query: {section: 'manage-my-profile'} })
         break
       case 'orders':
       router.push({ path: '/profile', query: { section: 'my-orders' } })
@@ -74,13 +95,20 @@
         ElMessage.info('Settings page coming soon!')
         break
       case 'logout':
-        ElMessage.success('Logged out successfully!')
+        authStore.logout()
         break
     }
   }
-  </script>
+
+  console.log('showLoginModal', uiStore.showLoginModal)
+
+
+  watchEffect(() => {
+  console.log('showLoginModal', uiStore.showLoginModal)
+})
+</script>
   
-  <style scoped>
+<style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=League+Spartan:wght@100..900&family=Manufacturing+Consent&display=swap');
 
 
@@ -160,6 +188,7 @@
     color: #0a1569;
     font-weight: bold;
     letter-spacing: 1px;
+    cursor: pointer;
   }
 
   :deep(.el-dropdown-menu__item) {
@@ -169,6 +198,11 @@
     color: #0a1569;
     font-weight: bold;
     letter-spacing: 1px;
+  }
+
+  :deep(.el-button--primary) {
+     color: #409eff;
+     background-color: #ffffff;
   }
 
   /* Responsive adjustments */
@@ -181,5 +215,14 @@
       gap: 1rem;
     }
   }
+  .cart-button {
+  all: unset;              /* remove all default styling */
+  cursor: pointer;         /* show pointer on hover */
+  display: inline-flex;    /* align the icon properly */
+  align-items: center;
+  justify-content: center;
+}
+
+  
   </style>
   

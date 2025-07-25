@@ -3,7 +3,7 @@
     <section class="categories">
       <h2>Categories</h2>
       <div class="grid">
-        <div v-for="cat in categories" :key="cat.name" class="category-tile">
+        <div v-for="cat in categories" :key="cat.name" class="category-tile" @click="router.push(`/category`)">
           <img :src="cat.icon" />
           <p>{{ cat.name }}</p>
         </div>
@@ -13,8 +13,10 @@
   
   <script setup lang="ts">
 import { categoryList } from '@/constants/Data'
+import { useRouter } from 'vue-router'
 
   const categories = categoryList
+  const router = useRouter()
     
   </script>
   

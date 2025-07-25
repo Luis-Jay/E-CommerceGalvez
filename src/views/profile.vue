@@ -25,11 +25,7 @@
                     <el-icon><Setting /></el-icon>
                     <span>Manage My Profile</span>  
                 </el-menu-item>
-  
-                <el-menu-item index="my-profile">
-                  <el-icon><UserFilled /></el-icon>
-                  <span>My Profile</span>
-                </el-menu-item>
+
   
                 <el-menu-item index="address-book">
                   <el-icon><Location /></el-icon>
@@ -83,63 +79,7 @@
   
             <!-- Dynamic Content Based on Selection -->
             <div class="content-body">
-              <!-- My Profile Content -->
-              <div v-if="activeMenu === 'my-profile'" class="profile-section">
-                <el-card class="profile-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>Personal Information</span>
-                      <el-button type="primary" size="small">Edit</el-button>
-                    </div>
-                  </template>
-  
-                  <el-form :model="profileForm" label-width="120px">
-                    <el-row :gutter="20">
-                      <el-col :span="12">
-                        <el-form-item label="First Name">
-                          <el-input
-                            v-model="profileForm.firstName"
-                            placeholder="Enter first name"
-                          />
-                        </el-form-item>
-                      </el-col>
-  
-                      <el-col :span="12">
-                        <el-form-item label="Last Name">
-                          <el-input
-                            v-model="profileForm.lastName"
-                            placeholder="Enter last name"
-                          />
-                        </el-form-item>
-                      </el-col>
-                    </el-row>
-  
-                    <el-form-item label="Email">
-                      <el-input
-                        v-model="profileForm.email"
-                        placeholder="Enter email address"
-                      />
-                    </el-form-item>
-  
-                    <el-form-item label="Phone Number">
-                      <el-input
-                        v-model="profileForm.phone"
-                        placeholder="Enter phone number"
-                      />
-                    </el-form-item>
-  
-                    <el-form-item label="Date of Birth">
-                      <el-date-picker
-                        v-model="profileForm.birthDate"
-                        type="date"
-                        placeholder="Select date"
-                        style="width: 100%"
-                      />
-                    </el-form-item>
-                  </el-form>
-                </el-card>
-              </div>
-
+        
               <!-- Manage My Profile Content -->
               <div v-if="activeMenu === 'manage-my-profile'" class="manage-my-profile-section">
                 <el-row :gutter="20">
@@ -248,15 +188,36 @@
 
               <!-- My Orders Content -->
               <div v-if="activeMenu === 'my-orders'" class="orders-section">
-                <el-card class="orders-card">
-                  <template #header>
-                    <div class="card-header">
-                      <span>Orders</span>
-                    </div>
-                  </template>
-                  <el-empty description="No orders found" />
-                </el-card>
+            <el-card class="orders-card">
+              <template #header>
+                <div class="card-header">
+                  <span>Orders</span>
+                </div>
+              </template>
+              <div v-if="!authStore.currentUser || !authStore.currentUser.orders || authStore.currentUser.orders.length === 0">
+                <el-empty description="No orders found" />
               </div>
+              <div v-else>
+                <el-timeline>
+                  <el-timeline-item
+                    v-for="order in authStore.currentUser.orders"
+                    :key="order.orderId"
+                    :timestamp="order.date"
+                    placement="top"
+                  >
+                    <h4>Order ID: {{ order.orderId }}</h4>
+                    <p>Status: {{ order.status }}</p>
+                    <p>Total: ₱{{ order.total.toFixed(2) }}</p>
+                    <ul>
+                      <li v-for="item in order.items" :key="item.id">
+                        {{ item.name }} (x{{ item.quantity }}) - ₱{{ item.currentPrice }}
+                      </li>
+                    </ul>
+                  </el-timeline-item>
+                </el-timeline>
+              </div>
+            </el-card>
+          </div>
 
               <!-- My Returns Content -->
               <div v-if="activeMenu === 'my-returns'" class="returns-section">
@@ -298,6 +259,8 @@
 import { ref, computed } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
+import { useOrderStore } from '@/stores/orderStore'
+import { useCartStore } from '@/stores/cartStore'
 import {
   User,
   UserFilled,
@@ -311,24 +274,34 @@ import {
 } from '@element-plus/icons-vue'
 import { useRoute } from 'vue-router'
 import { watch } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+const authStore = useAuthStore()
 
 // Reactive data
 const activeMenu = ref('my-profile')
 
+// order store
+const cart = useCartStore()
+const orderStore = useOrderStore()
+
+const users = JSON.parse(localStorage.getItem('users') || '[]')
+const currentUserEmail = localStorage.getItem('currentUserEmail')
+const currentUser = users.find((u: any) => u.email === currentUserEmail)
+
+
 // Profile form data
 const profileForm = ref({
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
-  phone: '+1 234 567 8900',
-  birthDate: ''
+  firstName: currentUser?.username || '',
+  lastName: currentUser?.lastName || '',
+  email: currentUser?.email || '',
+  phone: currentUser?.phone || '',
+  birthDate: currentUser?.birthDate || ''
 })
 
 // Computed properties for dynamic content
 const currentPageTitle = computed(() => {
   const titles: Record<string, string> = {
     'manage-my-profile': 'Manage My Profile',
-    'my-profile': 'My Profile',
     'address-book': 'Address Book',
     'payment-options': 'Payment Options',
     'lazada-wallet': 'Lazada Wallet',
@@ -336,13 +309,11 @@ const currentPageTitle = computed(() => {
     'my-cancellations': 'My Cancellations',
     
   }
-  return titles[activeMenu.value] || 'My Profile'
+  return titles[activeMenu.value] || 'Manage My Profile'
 })
 
 const currentPageDescription = computed(() => {
   const descriptions: Record<string, string> = {
-    'manage-my-profile': 'Manage your personal information and account details',
-    'my-profile': 'Manage your personal information and account details',
     'address-book': 'Save and manage your delivery addresses',
     'payment-options': 'Add and manage your payment methods',
     'lazada-wallet': 'View your wallet balance and transaction history',
@@ -361,16 +332,21 @@ const maskedEmail = computed(() => {
   return `${maskedName}@${domain}`
 })
 // Mock recent orders data
-const recentOrders = ref([
-  { orderId: '1001', date: '2024-06-01', status: 'Delivered', total: '$120.00' },
-  { orderId: '1002', date: '2024-05-28', status: 'Shipped', total: '$80.00' },
-  { orderId: '1003', date: '2024-05-20', status: 'Processing', total: '$45.00' }
-])
+const recentOrders = computed(() => currentUser?.orders || [])
 
 // Methods
 const handleMenuSelect = (index: string) => {
   activeMenu.value = index
 }
+
+const checkout = () => {
+  if (cart.items.length === 0) return
+
+  const total = cart.items.reduce((acc, item) => acc + item.currentPrice * item.quantity, 0)
+  orderStore.addOrder([...cart.items], total)
+  cart.clearCart() // You already added this
+}
+
 
 const route = useRoute()
 

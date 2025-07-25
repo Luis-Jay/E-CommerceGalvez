@@ -8,7 +8,7 @@
       </el-carousel>
   
       <div class="feature-cards">
-        <el-card v-for="(card, index) in cards" :key="index" shadow="hover" class="feature-card">
+        <el-card v-for="(card, index) in cards" :key="index" shadow="hover" class="feature-card" @click="handleUserAction(card.command)">
           <div class="card-content">
             <div class="text">
               <div class="card-title"><strong>{{ card.title }}</strong></div>
@@ -22,11 +22,32 @@
   </template>
   
   <script setup lang="ts">
+  import { useRouter } from 'vue-router'
+
+  const router = useRouter()
+
   const cards = [
-    { title: 'Top Up', subtitle: 'Pay Bills', image: 'https://img.lazcdn.com/us/domino/bf9403bb-c546-4646-815e-dc3126f8f14c_PH-276-260.png_300x300q80.png'},
-    { title: 'Vouchers', subtitle: 'Collect & Redeem', image: 'https://img.lazcdn.com/us/domino/feebd9c2-3167-4642-9c9d-1ec637046df8_PH-276-260.png_300x300q80.png'},
-    { title: 'LazMall', subtitle: 'Shop Brands', image: 'https://img.lazcdn.com/us/domino/92419c5c-19b8-4f17-a88c-6c7e3745d9a4_PH-276-260.png_300x300q80.png'},
+    { title: 'Top Up', subtitle: 'Pay Bills', image: 'https://img.lazcdn.com/us/domino/bf9403bb-c546-4646-815e-dc3126f8f14c_PH-276-260.png_300x300q80.png', command: 'topup'},
+    { title: 'Vouchers', subtitle: 'Collect & Redeem', image: 'https://img.lazcdn.com/us/domino/feebd9c2-3167-4642-9c9d-1ec637046df8_PH-276-260.png_300x300q80.png', command: 'vouchers'},
+    { title: 'LazMall', subtitle: 'Shop Brands', image: 'https://img.lazcdn.com/us/domino/92419c5c-19b8-4f17-a88c-6c7e3745d9a4_PH-276-260.png_300x300q80.png', command: 'lazmall'},
   ]
+
+  const handleUserAction = (command: string) => {
+  switch (command) {
+    case 'topup':
+      router.push({ path: '/profile', query: { section: 'lazada-wallet' } })
+      break
+    case 'vouchers':
+      router.push({ path: '/profile', query: { section: 'vouchers' } })
+      break
+    case 'lazmall':
+      router.push({ path: '/profile', query: { section: 'lazmall' } })
+      break
+    default:
+      // Optionally handle unknown commands
+      break
+  }
+}
 
   const bannerImages = [
     'https://img.lazcdn.com/g/tps/imgextra/i2/O1CN01jrlONu1zk0uVKavg4_!!6000000006751-0-tps-1976-688.jpg_2200x2200q80.jpg_.avif',
@@ -55,6 +76,7 @@
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: fit-content;
+    cursor: pointer;
   }
 
   .feature-card {
