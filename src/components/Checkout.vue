@@ -8,6 +8,11 @@
       class="checkout-dialog"
       top="5vh"
     >
+      <template #header>
+        <div class="dialog-header">
+          <h3>Checkout</h3>
+        </div>
+      </template>
       <div class="checkout-container">
         <!-- Payment Method Selection -->
         <div class="payment-method-section">
@@ -62,11 +67,12 @@
               :class="['payment-option', { selected: form.payment === 'alipay' }]"
               @click="form.payment = 'alipay'"
             >
-              <span class="alipay-icon">支</span>
-              <span>Alipay</span>
+              <span class="alipay-icon">L</span>
+              <span>DigiShop Wallet</span>
             </div>
           </div>
         </div>
+
   
         <!-- Security Notice -->
         <div class="security-notice">
@@ -74,6 +80,12 @@
           <span>Secure payment link</span>
           <i class="el-icon-arrow-down"></i>
           <span class="learn-more">Learn more</span>
+        </div>
+
+        <!-- Validation Error Banner -->
+        <div v-if="hasValidationErrors" class="validation-error-banner">
+          <el-icon><Warning /></el-icon>
+          <span>Please fix the validation errors below before proceeding with payment.</span>
         </div>
   
         <!-- Payment Form -->
@@ -83,6 +95,7 @@
           ref="formRef" 
           class="checkout-form"
           label-position="top"
+          @input="onFieldChange"
         >
           <!-- Email -->
            
@@ -100,66 +113,164 @@
   
           <!-- Card Information (only show if card payment selected) -->
           <div v-if="paymentType === 'card' && form.payment === 'card'" class="card-section">
-            <div class="form-group">
-              <label class="form-label">Card number</label>
-              <el-form-item label="" prop="cardNumber">
-              <el-input 
-                v-model="form.cardNumber" 
-                placeholder="1234 1234 1234 1234"
-                class="form-input card-input"
-                size="large"
-                maxlength="19"
-                @input="formatCardNumber"
-              >
-                <template #suffix>
-                  <div class="card-brands">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Visa_2021.svg/1200px-Visa_2021.svg.png" alt="Visa" class="card-brand" />
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" alt="Mastercard" class="card-brand" />
+            <!-- Saved Payment Methods Section -->
+            <div v-if="paymentMethodStore.hasPaymentMethods" class="saved-payment-methods">
+              <h4 class="section-title">Saved Payment Methods</h4>
+              <div class="saved-methods-list">
+                <div 
+                  v-for="method in paymentMethodStore.cardPaymentMethods" 
+                  :key="method.id"
+                  :class="['saved-method-item', { selected: selectedSavedMethod?.id === method.id }]"
+                  @click="selectSavedPaymentMethod(method)"
+                >
+                  <div class="method-info">
+                    <div class="method-name">{{ paymentMethodStore.getPaymentMethodDisplayName(method) }}</div>
+                    <div class="method-details">
+                      <span v-if="method.isDefault" class="default-badge">Default</span>
+                      <span class="method-date">Added {{ formatDate(method.createdAt) }}</span>
+                    </div>
                   </div>
-                </template>
-              </el-input>
-              </el-form-item>
+                  <div class="method-actions">
+                    <el-button 
+                      type="text" 
+                      size="small" 
+                      @click.stop="deleteSavedPaymentMethod(method.id)"
+                      class="delete-btn"
+                    >
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+              </div>
+
+
+              
+              <!-- Add New Payment Method Button -->
+              <div class="add-new-method">
+                <el-button 
+                  type="text" 
+                  @click="showNewPaymentForm = true"
+                  v-if="!showNewPaymentForm"
+                  class="add-new-btn"
+                >
+                  <el-icon><Plus /></el-icon>
+                  Add new payment method
+                </el-button>
+              </div>
             </div>
-  
-            <div class="form-row">
-              <div class="form-group half">
-                <label class="form-label">Expiration date</label>
-                <el-form-item label="" prop="expiryDate">
-                    <el-input 
-                    v-model="form.expiryDate"   
-                    placeholder="MM / YYYY"
-                    class="form-input"
-                    size="large"
-                    maxlength="7"
-                    @input="formatExpiryDate"
-                    />
+
+            <!-- New Payment Method Form -->
+            <div v-if="showNewPaymentForm || !paymentMethodStore.hasPaymentMethods" class="new-payment-form">
+              <div v-if="paymentMethodStore.hasPaymentMethods" class="form-header">
+                <h4 class="section-title">Add New Payment Method</h4>
+                <el-button 
+                  type="text" 
+                  @click="showNewPaymentForm = false"
+                  class="close-btn"
+                >
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">Card number</label>
+                <el-form-item label="" prop="cardNumber">
+                <el-input 
+                  v-model="form.cardNumber" 
+                  placeholder="1234 1234 1234 1234"
+                  class="form-input card-input"
+                  size="large"
+                  maxlength="19"
+                  @input="formatCardNumber"
+                >
+                  <template #suffix>
+                    <div class="card-brands">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Visa_2021.svg/1200px-Visa_2021.svg.png" alt="Visa" class="card-brand" />
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" alt="Mastercard" class="card-brand" />
+                    </div>
+                  </template>
+                </el-input>
                 </el-form-item>
               </div>
-              <div class="form-group half">
-                <label class="form-label">Security code</label>
-                <el-form-item label="" prop="cvv">
+
+              <div class="form-row">
+                <div class="form-group half">
+                  <label class="form-label">Expiration date</label>
+                  <el-form-item label="" prop="expiryDate">
+                      <el-input 
+                      v-model="form.expiryDate"   
+                      placeholder="MM / YYYY"
+                      class="form-input"
+                      size="large"
+                      maxlength="7"
+                      @input="formatExpiryDate"
+                      />
+                  </el-form-item>
+                </div>
+                <div class="form-group half">
+                  <label class="form-label">Security code</label>
+                  <el-form-item label="" prop="cvv">
+                  <el-input 
+                    v-model="form.cvv" 
+                    placeholder="123"
+                    class="form-input"
+                    size="large"
+                    maxlength="4"
+                    type="password"
+                  />
+                 </el-form-item>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Cardholder name</label>
+                <el-form-item label="" prop="cardholderName">
                 <el-input 
-                  v-model="form.cvv" 
-                  placeholder="123"
+                  v-model="form.cardholderName" 
+                  placeholder="Full name on card"
                   class="form-input"
                   size="large"
-                  maxlength="4"
-                  type="password"
                 />
-               </el-form-item>
+                </el-form-item>
               </div>
-            </div>
-  
-            <div class="form-group">
-              <label class="form-label">Cardholder name</label>
-              <el-form-item label="" prop="cardholderName">
-              <el-input 
-                v-model="form.cardholderName" 
-                placeholder="Full name on card"
-                class="form-input"
-                size="large"
-              />
-              </el-form-item>
+
+                                  <!-- Save Payment Method Option -->
+          <div class="save-payment-section">
+            <el-checkbox v-model="savePaymentMethod" class="save-payment-checkbox">
+              Save this payment method for future use
+            </el-checkbox>
+          </div>
+                  </div>
+
+          <!-- Digital Payment Methods Section -->
+          <div v-if="paymentType === 'digital' && paymentMethodStore.hasEcashPayment" class="digital-payment-section">
+            <h4 class="section-title">Saved Digital Wallets</h4>
+            <div class="saved-methods-list">
+              <div 
+                v-for="method in paymentMethodStore.digitalPaymentMethods" 
+                :key="method.id"
+                :class="['saved-method-item', { selected: selectedSavedMethod?.id === method.id }]"
+                @click="selectSavedDigitalMethod(method)"
+              >
+                <div class="method-info">
+                  <div class="method-name">{{ paymentMethodStore.getPaymentMethodDisplayName(method) }}</div>
+                  <div class="method-details">
+                    <span v-if="method.isDefault" class="default-badge">Default</span>
+                    <span class="method-date">Added {{ formatDate(method.createdAt) }}</span>
+                  </div>
+                </div>
+                <div class="method-actions">
+                  <el-button 
+                    type="text" 
+                    size="small" 
+                    @click.stop="deleteSavedPaymentMethod(method.id)"
+                    class="delete-btn"
+                  >
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
             </div>
           </div>
   
@@ -232,11 +343,14 @@
                 placeholder="Phone Number"
                 class="form-input"
                 size="large"
+                :disabled="selectedSavedMethod && selectedSavedMethod.type === 'digital'"
               />
             </el-form-item>
             </div>
           </div>
   
+
+
           <!-- Order Summary -->
           <div class="order-summary">
             <div class="summary-row">
@@ -255,7 +369,7 @@
             :loading="isLoading"
             @click="submitForm"
             class="pay-button"
-            :disabled="isSuccess"
+            :disabled="isSuccess || hasValidationErrors"
             size="large"
             >
             <template #icon>
@@ -297,24 +411,28 @@
   
   <script setup lang="ts">
   import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-  import type { FormInstance, FormRules } from 'element-plus'
-  import { useCartStore } from '@/stores/cartStore'
-  import { useAuthStore } from '@/stores/authStore'
-  import { ElMessage, ElLoading } from 'element-plus'
-  import { showMessageOnce } from '@/utils/showMessageOnce'
-  import router from '@/router'
-  import { useOrderStore } from '@/stores/orderStore'
+import type { FormInstance, FormRules } from 'element-plus'
+import { useCartStore } from '@/stores/cartStore'
+import { useAuthStore } from '@/stores/authStore'
+import { usePaymentMethodStore } from '@/stores/paymentMethodStore'
+import { ElMessage, ElLoading } from 'element-plus'
+import { showMessageOnce } from '@/utils/showMessageOnce'
+import router from '@/router'
+import { useOrderStore } from '@/stores/orderStore'
+import { Delete, Plus, Close, Warning } from '@element-plus/icons-vue'
   
   onMounted(() => {
-  timer = window.setInterval(updateTimer, 1000)
-  orderStore.loadOrders() // 🔥 Load persisted orders
-})
+    timer = window.setInterval(updateTimer, 1000)
+    orderStore.loadOrders() // 🔥 Load persisted orders
+    paymentMethodStore.initializeStore() // Initialize payment method store
+  })
 
 
   // Stores
   const authStore = useAuthStore()
   const cartStore = useCartStore()
   const orderStore = useOrderStore()
+  const paymentMethodStore = usePaymentMethodStore()
   
   // Refs
   const couponCode = ref('')
@@ -326,6 +444,11 @@
   const paymentType = ref<PaymentType>('card')
   const saleEndTime = ref(Date.now() + (21 * 60 * 60 * 1000) + (31 * 60 * 1000)) // 21h 31m
   const timeLeft = ref('')
+  const savePaymentMethod = ref(false)
+  const selectedSavedMethod = ref<any>(null)
+  const showNewPaymentForm = ref(false)
+  const hasValidationErrors = ref(false)
+  const isExitingWithErrors = ref(false)
   let timer: number | undefined
   
   // Types
@@ -493,6 +616,7 @@
         trigger: 'blur',
         validator: (rule, value, callback) => {
           if (paymentType.value !== 'card') return callback()
+          // CVV is always required, even for saved payment methods
           if (!value || !/^\d{3,4}$/.test(value)) {
             callback(new Error('Please enter a valid 3-4 digit CVV'))
           } else {
@@ -567,6 +691,15 @@
   
   const formatAmount = (amount: number): string => amount.toFixed(2)
   
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+  
   const handlePaymentTypeChange = async (type: PaymentType): Promise<void> => {
     const loadingInstance = ElLoading.service({ text: 'Switching payment method...' })
     try {
@@ -576,10 +709,7 @@
       
       // Clear card-specific fields when switching to digital
       if (type === 'digital') {
-        form.cardNumber = ''
-        form.expiryDate = ''
-        form.cvv = ''
-        form.cardholderName = ''
+        clearPaymentForm()
       }
       
       ElMessage.success(`Switched to ${type === 'card' ? 'Card' : 'Digital'} payment`)
@@ -594,71 +724,278 @@
   }
   
   const submitForm = async (): Promise<void> => {
-  if (!formRef.value) return
+    if (!formRef.value) return
 
-  isLoading.value = true
-  isSuccess.value = false
-  isProcessing.value = true
+    // Reset error states
+    hasValidationErrors.value = false
+    isExitingWithErrors.value = false
 
-  const loadingInstance = ElLoading.service({
-    text: 'Processing payment...',
-    spinner: 'el-icon-loading',
-    background: 'rgba(0, 0, 0, 0.7)'
-  })
+    isLoading.value = true
+    isSuccess.value = false
+    isProcessing.value = true
 
-  try {
-    await formRef.value.validate()
-
-    await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate payment delay
-
-    const totalAmount = cartStore.totalPrice
-    const itemsCopy = [...cartStore.items]
-
-
-    // ✅ Add to current user's orders in localStorage
-    authStore.addUserOrder({
-      orderId: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      status: 'Paid',
-      total: totalAmount,
-      items: itemsCopy
+    const loadingInstance = ElLoading.service({
+      text: 'Processing payment...',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
     })
 
-    // Clear the cart
-    cartStore.clearCart()
+    try {
+      // Validate form first
+      await formRef.value.validate()
+      
+      // Additional validation for saved payment methods
+      if (paymentType.value === 'card' && form.payment === 'card') {
+        if (selectedSavedMethod.value) {
+          // Validate that CVV is provided for saved payment methods
+          if (!form.cvv || !/^\d{3,4}$/.test(form.cvv)) {
+            throw new Error('CVV is required for saved payment methods')
+          }
+          
+          // Use the saved payment method data
+          form.cardNumber = selectedSavedMethod.value.number
+          form.expiryDate = selectedSavedMethod.value.expiryDate
+          form.cardholderName = selectedSavedMethod.value.cardholderName || selectedSavedMethod.value.name
+        } else {
+          // Validate new payment method data
+          if (!form.cardNumber || form.cardNumber.replace(/\s/g, '').length !== 16) {
+            throw new Error('Please enter a valid 16-digit card number')
+          }
+          if (!form.expiryDate || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(form.expiryDate)) {
+            throw new Error('Please enter a valid expiry date (MM/YY)')
+          }
+          if (!form.cvv || !/^\d{3,4}$/.test(form.cvv)) {
+            throw new Error('Please enter a valid 3-4 digit CVV')
+          }
+          if (!form.cardholderName || form.cardholderName.trim().length < 2) {
+            throw new Error('Please enter a valid cardholder name')
+          }
+        }
+        
+        // Save payment method if requested and it's a new payment method
+        if (savePaymentMethod.value && !selectedSavedMethod.value) {
+          try {
+            const paymentData = {
+              type: 'card' as const,
+              name: form.cardholderName || 'My Card',
+              number: form.cardNumber,
+              expiryDate: form.expiryDate,
+              cvv: form.cvv,
+              cardholderName: form.cardholderName,
+              isDefault: paymentMethodStore.savedPaymentMethods.length === 0
+            }
 
-    ElMessage({
-      message: '✅ Payment successful!',
-      type: 'success',
-      duration: 3000
-    })
+            if (paymentMethodStore.validatePaymentMethod(paymentData)) {
+              paymentMethodStore.savePaymentMethod(paymentData)
+              ElMessage.success('Payment method saved successfully!')
+            }
+          } catch (error) {
+            console.error('Failed to save payment method:', error)
+            ElMessage.warning('Payment method could not be saved, but payment will continue')
+          }
+        }
+      } else if (paymentType.value === 'digital') {
+        // Handle digital payment methods
+        if (selectedSavedMethod.value) {
+          // Use the saved digital payment method data
+          form.payment = selectedSavedMethod.value.paymentMethod || 'gcash'
+        } else {
+          // Validate digital payment method selection
+          if (!['gcash', 'paymaya', 'alipay'].includes(form.payment)) {
+            throw new Error('Please select a digital wallet')
+          }
+        }
+        
+        // Save digital payment method if requested and it's a new payment method
+        if (savePaymentMethod.value && !selectedSavedMethod.value) {
+          try {
+            const paymentData = {
+              type: 'digital' as const,
+              name: `${form.payment.toUpperCase()} Wallet`,
+              paymentMethod: form.payment,
+              accountInfo: `Account for ${form.payment.toUpperCase()}`,
+              isDefault: paymentMethodStore.savedPaymentMethods.length === 0
+            }
 
-    emit('paymentSuccess')
+            if (paymentMethodStore.validatePaymentMethod(paymentData)) {
+              paymentMethodStore.savePaymentMethod(paymentData)
+              ElMessage.success('Digital wallet saved successfully!')
+            }
+          } catch (error) {
+            console.error('Failed to save digital wallet:', error)
+            ElMessage.warning('Digital wallet could not be saved, but payment will continue')
+          }
+        }
+      }
 
-    formRef.value.resetFields()
-    couponCode.value = ''
-    couponDiscount.value = 0
-    isSuccess.value = true
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-    router.push('/shopping-cart')
+      const totalAmount = cartStore.totalPrice
+      const itemsCopy = [...cartStore.items]
 
-  } catch (error) {
-    console.error('Payment failed:', error)
-    ElMessage.error('❌ Payment failed. Please check your details.')
-  } finally {
-    isLoading.value = false
-    isProcessing.value = false
-    loadingInstance.close()
-    setTimeout(() => {
-      window.location.reload();
-    },500)
+      // Add to current user's orders in localStorage
+      authStore.addUserOrder({
+        orderId: Date.now().toString(),
+        date: new Date().toISOString().split('T')[0],
+        status: 'Paid',
+        total: totalAmount,
+        items: itemsCopy
+      })
+
+      // Clear the cart
+      cartStore.clearCart()
+
+      ElMessage({
+        message: '✅ Payment successful!',
+        type: 'success',
+        duration: 3000
+      })
+
+      emit('paymentSuccess')
+
+      // Reset form and states
+      formRef.value.resetFields()
+      couponCode.value = ''
+      couponDiscount.value = 0
+      isSuccess.value = true
+      clearPaymentForm()
+      hasValidationErrors.value = false
+
+      router.push('/shopping-cart')
+
+    } catch (error) {
+      console.error('Payment failed:', error)
+      hasValidationErrors.value = true
+      
+      // Show specific error message
+      const errorMessage = error instanceof Error ? error.message : '❌ Payment failed. Please check your details.'
+      ElMessage.error(errorMessage)
+      
+      // Scroll to the first error field
+      setTimeout(() => {
+        const firstErrorField = document.querySelector('.el-form-item.is-error')
+        if (firstErrorField) {
+          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+      
+    } finally {
+      isLoading.value = false
+      isProcessing.value = false
+      loadingInstance.close()
+    }
   }
-}
 
 
   
+  const selectSavedPaymentMethod = (method: any) => {
+  if (selectedSavedMethod.value && selectedSavedMethod.value.id === method.id) {
+    // Deselect
+    selectedSavedMethod.value = null
+    // Optionally clear card fields
+    form.cardNumber = ''
+    form.expiryDate = ''
+    form.cvv = ''
+    form.cardholderName = ''
+    showMessageOnce('Card deselected', 'info')
+    return
+  }
+  // Select
+  selectedSavedMethod.value = method
+  form.cardNumber = method.number || ''
+  form.expiryDate = method.expiryDate || ''
+  form.cardholderName = method.cardholderName || method.name || ''
+  form.cvv = ''
+  showNewPaymentForm.value = false
+  showMessageOnce('Payment method selected!','success')
+}
+
+  const selectSavedDigitalMethod = (method: any) => {
+  if (selectedSavedMethod.value && selectedSavedMethod.value.id === method.id) {
+    // Deselect
+    selectedSavedMethod.value = null
+    paymentType.value = 'digital'
+    form.payment = 'gcash'
+    form.phoneNumber = ''
+    showMessageOnce('Digital wallet deselected', 'info')
+    return
+  }
+  // Select
+  selectedSavedMethod.value = method
+  paymentType.value = 'digital'
+  form.payment = method.paymentMethod || 'gcash'
+  form.cardNumber = ''
+  form.expiryDate = ''
+  form.cvv = ''
+  form.cardholderName = ''
+  if (method.accountInfo) {
+    form.phoneNumber = method.accountInfo
+  }
+  showNewPaymentForm.value = false
+  showMessageOnce('Digital wallet selected!', 'success')
+}
+
+
+  const deleteSavedPaymentMethod = (methodId: string) => {
+    try {
+      paymentMethodStore.deletePaymentMethod(methodId)
+      ElMessage.success('Payment method deleted!')
+    } catch (error) {
+      console.error('Error deleting payment method:', error)
+      ElMessage.error('Failed to delete payment method')
+    }
+  }
+
+
+  const clearPaymentForm = () => {
+    form.cardNumber = ''
+    form.expiryDate = ''
+    form.cvv = ''
+    form.cardholderName = ''
+    selectedSavedMethod.value = null
+    showNewPaymentForm.value = false
+    savePaymentMethod.value = false
+    hasValidationErrors.value = false
+    isExitingWithErrors.value = false
+  }
+
+  const validateForm = async () => {
+    if (!formRef.value) return false
+    
+    try {
+      await formRef.value.validate()
+      hasValidationErrors.value = false
+      return true
+    } catch (error) {
+      hasValidationErrors.value = true
+      return false
+    }
+  }
+
+  const onFieldChange = () => {
+    // Clear validation errors when user starts typing
+    if (hasValidationErrors.value) {
+      hasValidationErrors.value = false
+    }
+  }
+
   const onClose = (): void => {
+    // If there are validation errors and user is not explicitly exiting, show warning
+    if (hasValidationErrors.value && !isExitingWithErrors.value) {
+      ElMessage.warning('Please fix the validation errors before proceeding or click X to exit')
+      return
+    }
+    
+    clearPaymentForm()
+    hasValidationErrors.value = false
+    isExitingWithErrors.value = false
     emit('close')
+  }
+
+  const onExplicitClose = (): void => {
+    isExitingWithErrors.value = true
+    onClose()
   }
 
   
@@ -668,6 +1005,151 @@
   
 
 <style scoped>
+.save-payment-section {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.save-payment-checkbox {
+  font-size: 14px;
+  color: #495057;
+}
+
+/* Saved Payment Methods Styles */
+.saved-payment-methods {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.section-title {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.saved-methods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.saved-method-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  filter: drop-shadow(0 0 0.20rem rgb(76, 210, 243));
+}
+
+.saved-method-item:hover {
+  border-color: var(--primary-blue);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.saved-method-item.selected {
+  border-color: var(--primary-blue);
+  background: #e8f0fe;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.method-info {
+  flex-grow: 1;
+}
+
+.method-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.method-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.default-badge {
+  background-color: var(--primary-blue);
+  color: rgb(255, 145, 0);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.method-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.method-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-btn {
+  color: #dc3545;
+  font-size: 16px;
+}
+
+.delete-btn:hover {
+  color: #c82333;
+}
+
+.add-new-method {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.add-new-btn {
+  color: var(--primary-blue);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+}
+
+.add-new-btn:hover {
+  text-decoration: underline;
+}
+
+.new-payment-form {
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.close-btn {
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+}
 .checkout-dialog {
   --primary-blue: #4285f4;
   --border-color: #e1e8ed;
@@ -684,7 +1166,35 @@
 }
 
 .checkout-dialog :deep(.el-dialog__header) {
-  display: none;
+  padding: 20px 24px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.close-dialog-btn {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.close-dialog-btn:hover {
+  color: var(--text-primary);
+}
+
+.close-dialog-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .checkout-dialog :deep(.el-dialog__body) {
@@ -798,6 +1308,24 @@
   border-bottom: 1px solid var(--border-color);
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+/* Validation Error Banner */
+.validation-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.validation-error-banner .el-icon {
+  color: #dc2626;
+  font-size: 16px;
 }
 
 .security-notice i:first-child {
@@ -951,6 +1479,18 @@
   border-color: #3367d6;
 }
 
+.pay-button:disabled {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.pay-button:disabled:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
 .pay-button i {
   margin-right: 8px;
 }
@@ -990,6 +1530,7 @@
 .billing-section {
   margin: 24px 0;
 }
+
 
 
 /* Responsive */

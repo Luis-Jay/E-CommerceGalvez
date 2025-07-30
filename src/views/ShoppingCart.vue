@@ -135,14 +135,61 @@
             </el-row>
           </div>
           <h3 class="newsletter-title">Stay Updated</h3>
-<el-form label-position="top" class="newsletter-form">
-  <el-form-item label="Subscribe to our newsletter">
-    <el-input
-      placeholder="Enter your email (optional)"
-      class="newsletter-input"
-    />
-  </el-form-item>
-</el-form>
+        <el-form label-position="top" class="newsletter-form">
+          <el-form-item label="Subscribe to our newsletter">
+            <el-input
+              placeholder="Enter your email (optional)"
+              class="newsletter-input"
+            />
+          </el-form-item>
+        </el-form>
+
+        <!-- Payment method -->
+        <el-card>
+          <template #header>
+            <div class="card-header">
+              <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">Payment Method</h3>
+            </div>
+          </template>
+
+          <div class="payment-methods">
+            <div class="payment-grid">
+              <!-- Cashless Payment Card -->
+              <div class="payment-card" :class="{ active: selectedPayment === 'cashless' }" @click="selectedPayment = 'cashless'">
+                <div class="payment-header">
+                  <div class="payment-logos">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/GCash_logo.svg/2560px-GCash_logo.svg.png" 
+                        alt="GCash" class="payment-logo">
+                    <img src="https://faq.goodwork.ph/wp-content/uploads/2020/08/paymaya.png?w=1024" 
+                        alt="PayMaya" class="payment-logo">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png" 
+                        alt="Visa" class="payment-logo">
+                  </div>
+                  <div class="check-icon" v-if="selectedPayment === 'cashless'">
+                    <el-icon><Check /></el-icon>
+                  </div>
+                </div>
+                <h4 class="payment-title">Cashless Payment</h4>
+                <p class="payment-description">Pay using GCash, PayMaya, or Credit/Debit Card for quick and secure transactions.</p>
+              </div>
+
+              <!-- Cash on Delivery Card -->
+              <div class="payment-card" :class="{ active: selectedPayment === 'cod' }" @click="selectedPayment = 'cod'">
+                <div class="payment-header">
+                  <div class="cod-icon">
+                    <el-icon style="font-size: 32px; color: #52c41a;"><Money /></el-icon>
+                  </div>
+                  <div class="check-icon" v-if="selectedPayment === 'cod'">
+                    <el-icon><Check /></el-icon>
+                  </div>
+                </div>
+                <h4 class="payment-title">Cash on Delivery</h4>
+                <p class="payment-description">Pay with cash when your order is delivered to your door.</p>
+              </div>
+            </div>
+          </div>
+        </el-card>
+
 
         </el-main>
   
@@ -250,7 +297,7 @@
               type="primary" 
               size="large" 
               class="checkout-button"
-              @click="proceedToCheckout"
+              @click="handleCheckout"
               :disabled="cartStore.items.length === 0"
             >
               Proceed to Checkout - 
@@ -265,6 +312,7 @@
             @close="showCheckout = false"
             @paymentSuccess="handlePaymentSuccess"
           />
+
           </el-card>
         </el-aside>
       </el-container>
@@ -346,16 +394,26 @@ const updateTimer = () => {
   }
 }
 
-const proceedToCheckout = () => {
+const handleCheckout = async () => {
+  if(!selectedPayment.value) {
+    showMessageOnce('Please select a payment method', 'error')
+    return
+  }
 
-  
+  if (selectedPayment.value === 'cod') {
+  emit('paymentSuccess') // or call handlePaymentSuccess() if defined
+  await handleCashOnDelivery()
+  return
+}
+
+
+
   showCheckout.value = true
 
-    // Create a recent order entry
+  // Create a recent order entry
   const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString()
   const orderDate = new Date().toLocaleDateString()
   const totalAmount = cartStore.finalTotal(couponDiscount.value)
-
 
   console.log('showCheckout:', showCheckout.value)
   
@@ -369,6 +427,7 @@ const proceedToCheckout = () => {
     coupon: couponCode.value,
     discount: couponDiscount.value
   })
+  console.log(selectedPayment.value)
 }
 
 const handlePaymentSuccess = () => {
@@ -377,6 +436,127 @@ const handlePaymentSuccess = () => {
   // Optionally reload orders or trigger animations
 }
 
+
+
+import { Check, Money } from '@element-plus/icons-vue'
+import { showMessageOnce } from '@/utils/showMessageOnce'
+
+// Define the payment method type
+type PaymentMethod = 'cashless' | 'cod' | ''
+
+// Reactive variable to store selected payment method
+const selectedPayment = ref<PaymentMethod>('') // Empty by default, or set to 'cashless' for default selection
+
+
+//process of payment
+import type { FormInstance } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import router from '@/router'
+
+  // Types
+  interface CashOnDeliveryForm {
+  email: string
+  country: string
+  address: string
+  city: string
+  zipCode: string
+  phoneNumber: string
+  amount: number
+}
+
+  // Emits
+  interface Emits {
+    (e: 'close'): void
+    (e: 'submit', form: CashOnDeliveryForm): void
+    (e: 'paymentSuccess'): void
+  }
+
+const emit = defineEmits<Emits>()
+const formRef = ref<FormInstance>()
+const isLoading = ref(false)
+const isSuccess = ref(false)
+const isProcessing = ref(false)
+const savePaymentMethod = ref(false)
+
+const proceedToCheckout = () => {
+
+  
+showCheckout.value = true
+
+  // Create a recent order entry
+const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString()
+const orderDate = new Date().toLocaleDateString()
+const totalAmount = cartStore.finalTotal(couponDiscount.value)
+
+
+console.log('showCheckout:', showCheckout.value)
+
+// Here you would typically send the order to your backend
+console.log('Order Details:', {
+  items: cartStore.items,
+  delivery: cartStore.selectedDelivery,
+  services: cartStore.services,
+  customer: paymentForm.value,
+  total: cartStore.finalTotal(couponDiscount.value),
+  coupon: couponCode.value,
+  discount: couponDiscount.value
+})
+}
+
+const handleCashOnDelivery = async () => {
+  isLoading.value = true;
+  isProcessing.value = true;
+
+  const loadingInstance = ElLoading.service({
+    text: 'Processing Cash on Delivery order...',
+    spinner: 'el-icon-loading',
+    background: 'rgba(0, 0, 0, 0.7)',
+  });
+
+  try {
+    // Simulate API delay (optional, adjust as needed)
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString();
+    const orderDate = new Date().toISOString().split('T')[0];
+    const totalAmount = cartStore.finalTotal(couponDiscount.value);
+    const itemsCopy = [...cartStore.items];
+
+    // Add to user's orders with 'Pending' status for COD
+    authStore.addUserOrder({
+      orderId,
+      date: orderDate,
+      status: 'Pending', // COD payment is collected on delivery
+      total: totalAmount,
+      items: itemsCopy,
+    });
+
+    cartStore.clearCart();
+
+    ElMessage({
+      message: 'Order placed successfully! Payment will be collected on delivery.',
+      type: 'success',
+      duration: 3000,
+    });
+
+    emit('close');
+    couponCode.value = '';
+    couponDiscount.value = 0;
+    isSuccess.value = true;
+
+    router.push('/shopping-cart');
+  } catch (error) {
+    console.error('Order placement failed:', error);
+    ElMessage.error(' Failed to place order. Please try again.');
+  } finally {
+    isLoading.value = false;
+    isProcessing.value = false;
+    loadingInstance.close();
+  }
+};
+
+
+
 </script> 
 
 <style scoped>
@@ -384,7 +564,7 @@ const handlePaymentSuccess = () => {
     font-family: 'Lato', sans-serif;
 }
 
-.for-you {
+.for-you { 
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;
@@ -709,6 +889,105 @@ const handlePaymentSuccess = () => {
 .newsletter-input .el-input__inner:focus {
   border-color: #409eff;
   box-shadow: 0 0 4px rgba(64, 158, 255, 0.2);
+}
+
+.payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  size: small;
+}
+
+.payment-card {
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  position: relative;
+  min-height: 160px;
+}
+
+.payment-card:hover {
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-card.active {
+  border-color: #52c41a;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.2);
+}
+
+.payment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.payment-logos {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.payment-logo {
+  height: 20px;
+  object-fit: contain;
+}
+
+.cod-icon {
+  display: flex;
+  align-items: center;
+}
+
+.payment-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.check-icon {
+  width: 24px;
+  height: 24px;
+  background: #52c41a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.payment-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #ff4d4f;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.remove-btn:hover {
+  color: #ff7875;
+}
+
+@media (max-width: 768px) {
+  .payment-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 </style>
