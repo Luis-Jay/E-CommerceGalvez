@@ -6,6 +6,16 @@
           <div class="card-header">
             <el-icon><LocationInformation /></el-icon>
             <span>Philippine Address Search</span>
+                      <el-switch
+            v-model="isDefaultSwitch"
+            active-text="Set as default"
+            @change="onDefaultSwitchChange"
+            :disabled="!query || !query.trim()"
+          />
+          <div v-if="isAddressAlreadySaved" class="address-status">
+            <el-tag type="info" size="small">Already Saved</el-tag>
+            <el-tag v-if="isCurrentAddressDefault" type="success" size="small">Default Address</el-tag>
+          </div>
           </div>
         </template>
         
@@ -151,7 +161,7 @@
   </template>
   
   <script lang="ts" setup>
-  import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useAddressStore } from '@/stores/addressStore'
 import {
   ElCard,
@@ -207,6 +217,61 @@ const suggestionsTimeout = ref<number | null>(null)
 const showTraffic = ref(false)
 const showSatellite = ref(false)
 const trafficLayer = ref<any>(null)
+const isDefaultSwitch = ref(false)
+const isCurrentAddressDefault = computed(() => {
+  return (
+    !!query.value &&
+    addressStore.defaultAddress &&
+    addressStore.defaultAddress.address.trim().toLowerCase() === query.value.trim().toLowerCase()
+  )
+})
+
+const isAddressAlreadySaved = computed(() => {
+  return (
+    !!query.value &&
+    addressStore.savedAddresses.some(addr => 
+      addr.address.trim().toLowerCase() === query.value.trim().toLowerCase()
+    )
+  )
+})
+
+// Watch for changes in default address and update switch accordingly
+watch(
+  () => addressStore.defaultAddress,
+  (newDefaultAddress) => {
+    if (newDefaultAddress && query.value) {
+      isDefaultSwitch.value = newDefaultAddress.address.trim().toLowerCase() === query.value.trim().toLowerCase()
+    } else {
+      isDefaultSwitch.value = false
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => query.value,
+  (newVal) => {
+    isDefaultSwitch.value = isCurrentAddressDefault.value
+  },
+  { immediate: true }
+)
+
+const onDefaultSwitchChange = (val: string | number | boolean) => {
+  const checked = Boolean(val)
+  if (checked && query.value) {
+    try {
+      addressStore.setDefaultAddress(query.value)
+      showSuccess('Address set as default successfully!')
+    } catch (error) {
+      showError('Failed to set address as default')
+      isDefaultSwitch.value = false // Revert the switch
+    }
+  } else if (!checked && isCurrentAddressDefault.value) {
+    // If unchecking the current default, we could set the first non-default address as default
+    // For now, we'll just leave it unchecked
+    showSuccess('Default address unset')
+  }
+}
   
   // Philippine bounds for better search results
   const philippineBounds = {
@@ -590,7 +655,7 @@ const trafficLayer = ref<any>(null)
   map.value.setMapTypeId(mapType)
 }
 
-const SaveAddress = () => {
+const saveAddress = () => {
   if (!query?.value || !markers?.value) {
     showError('Internal error: Missing query or markers data.');
     return;
@@ -629,7 +694,13 @@ const SaveAddress = () => {
       longitude: lng
     });
 
-    showSuccess('Address saved successfully!');
+    // If default switch is on, set as default
+    if (isDefaultSwitch.value) {
+      addressStore.setDefaultAddress(currentAddress);
+    }
+
+    const message = isAddressAlreadySaved.value ? 'Address updated successfully!' : 'Address saved successfully!';
+    showSuccess(message);
     console.log('Saved address:', savedAddress);
   } catch (error) {
     console.error('Error saving address:', error);
@@ -719,7 +790,7 @@ const SaveAddress = () => {
 }
 
 const handleSaveAddress = () => {
-  SaveAddress()
+  saveAddress()
 }
 
 
@@ -823,6 +894,12 @@ onMounted(async () => {
     font-weight: 600;
     font-size: 18px;
     color: #409eff;
+  }
+  
+  .address-status {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
   }
   
   .search-container {

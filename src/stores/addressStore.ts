@@ -7,6 +7,7 @@ interface Address {
   longitude: number
   timestamp: string
   savedAt: string
+  isDefault?: boolean
 }
 
 interface User {
@@ -44,6 +45,11 @@ export const useAddressStore = defineStore('address', () => {
   // Get current user's saved addresses
   const savedAddresses = computed(() => {
     return currentUser.value?.savedAddresses || []
+  })
+
+  // Default address (first with isDefault, else first address, else null)
+  const defaultAddress = computed(() => {
+    return savedAddresses.value.find(addr => addr.isDefault) || savedAddresses.value[0] || null
   })
 
   // Save address for current user
@@ -160,6 +166,22 @@ export const useAddressStore = defineStore('address', () => {
     localStorage.setItem('users', JSON.stringify(users.value))
   }
 
+  // Set default address for current user
+  const setDefaultAddress = (addressToSet: string) => {
+    if (!currentUserEmail.value) throw new Error('No user logged in')
+    const userIndex = users.value.findIndex(user => user.email === currentUserEmail.value)
+    if (userIndex === -1) throw new Error('User not found')
+    const user = users.value[userIndex]
+    if (!user.savedAddresses) throw new Error('No saved addresses found')
+
+    user.savedAddresses = user.savedAddresses.map(addr => ({
+      ...addr,
+      isDefault: addr.address === addressToSet
+    }))
+    users.value[userIndex] = user
+    localStorage.setItem('users', JSON.stringify(users.value))
+  }
+
   // Update current user email
   const setCurrentUserEmail = (email: string | null) => {
     currentUserEmail.value = email
@@ -170,6 +192,8 @@ export const useAddressStore = defineStore('address', () => {
     currentUserEmail,
     currentUser,
     savedAddresses,
+    defaultAddress,
+    setDefaultAddress,
     initializeStore,
     saveAddress,
     deleteAddress,

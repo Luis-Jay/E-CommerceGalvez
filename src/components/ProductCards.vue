@@ -58,6 +58,7 @@
  import { useAuthStore } from '@/stores/authStore'
  import { showMessageOnce } from '@/utils/showMessageOnce'
  import { ref } from 'vue'
+ import { useModalStore } from '@/stores/useModalStore'
 
  const router = useRouter()
  const cartStore = useCartStore()
@@ -68,7 +69,16 @@
   router.push({ name: 'ProductPage', params: { id } })
  }
 
+ const uiStore = useModalStore()
+
  function addToCart(item: any) {
+   const auth = useAuthStore()
+
+  if (!auth.isAuthenticated) {
+    uiStore.showLoginModal = true
+    return
+  }
+
   // Transform product data to CartItem format
   const cartItem = {
     id: item.id,

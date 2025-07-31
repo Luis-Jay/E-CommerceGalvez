@@ -7,13 +7,23 @@
       </div>
       <div class="header-actions">
         <div class="cart">
-          <el-button
-          class="cart-button"
-            @click="authStore.isAuthenticated ? router.push('/shopping-cart') : (uiStore.showLoginModal = true)"
-          >
-          <el-icon size="43" color="#0a1569"><ShoppingCart /></el-icon>
-          </el-button>
-        </div>
+  <div class="cart-icon-container">
+    <el-button
+      class="cart-button"
+      @click="authStore.isAuthenticated ? router.push('/shopping-cart') : (uiStore.showLoginModal = true)"
+      aria-label="Shopping cart"
+    >
+      <el-icon size="43" color="#0a1569"><ShoppingCart /></el-icon>
+    </el-button>
+    <span
+      v-if="cartStore.items.length > 0"
+      class="cart-badge"
+      :aria-label="`${cartStore.items.length} items in cart`"
+    >
+      {{ cartStore.items.length }}
+    </span>
+  </div>
+</div>
         
         <div class="user-profile" v-if="authStore.isAuthenticated">
           <el-dropdown trigger="click" @command="handleUserAction">
@@ -73,12 +83,12 @@
   import { computed } from 'vue'
   import { useAuth } from '@/stores/useAuth'    
   import { useModalStore } from '@/stores/useModalStore'
-
+  import { useCartStore } from '@/stores/cartStore'
 
   const router = useRouter()
   const authStore = useAuthStore()
   const uiStore = useModalStore()
-
+  const cartStore = useCartStore()
 
   const handleUserAction = (command: string) => {
     switch (command) {
@@ -222,6 +232,43 @@
   align-items: center;
   justify-content: center;
 }
+
+.cart-icon-container {
+  position: relative;
+  display: inline-block;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ff6600;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  padding: 2px 6px;
+  line-height: 16px;
+  min-width: 18px;
+  text-align: center;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  font-family: 'Lato', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #ffffff;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.cart-button {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
 
   
   </style>

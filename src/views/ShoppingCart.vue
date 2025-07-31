@@ -393,8 +393,14 @@ const updateTimer = () => {
     timeLeft.value = 'SALE ENDED'
   }
 }
+import { useModalStore } from '@/stores/useModalStore'
+const uiStore = useModalStore()
 
 const handleCheckout = async () => {
+  if(!authStore.isAuthenticated) {
+    uiStore.showLoginModal = true
+  }
+
   if(!selectedPayment.value) {
     showMessageOnce('Please select a payment method', 'error')
     return

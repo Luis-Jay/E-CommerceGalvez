@@ -221,9 +221,18 @@ function showAllImages() {
 }
 
 
+import { useModalStore } from '@/stores/useModalStore'
+const uiStore = useModalStore()
+
 
 function addToCart() {
   const auth = useAuthStore()
+
+  if(!auth.isAuthenticated) {
+    uiStore.showLoginModal = true
+    return
+  }
+  
   // Transform product data to CartItem format
   const cartItem = {
     id: product.value.id,
@@ -241,10 +250,10 @@ function addToCart() {
     deliveryFee: 0
   }
   
-  console.log('currentUser:', auth.currentUser)
   auth.addToUserCart(cartItem)
   showMessageOnce('Added to cart!', 'success')
   console.log('user cart items:', auth.currentUser?.cartItems)
+  
 }
 
 function buyNow() {

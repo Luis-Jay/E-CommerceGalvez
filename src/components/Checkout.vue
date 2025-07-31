@@ -382,7 +382,7 @@
             <span v-else-if="isLoading" class="processing-text">
                 Processing<span class="dots"><span>.</span><span>.</span><span>.</span></span>
             </span>
-            <span v-else>Pay ₱{{ formatAmount(form.amount || 0) }}</span>
+            <span v-else>Pay {{ formatPrice(cartStore.finalTotal(couponDiscount)) }}</span>
             </el-button>
 
 
@@ -420,11 +420,16 @@ import { showMessageOnce } from '@/utils/showMessageOnce'
 import router from '@/router'
 import { useOrderStore } from '@/stores/orderStore'
 import { Delete, Plus, Close, Warning } from '@element-plus/icons-vue'
+import { useAddressStore } from '@/stores/addressStore'
   
   onMounted(() => {
     timer = window.setInterval(updateTimer, 1000)
     orderStore.loadOrders() // 🔥 Load persisted orders
     paymentMethodStore.initializeStore() // Initialize payment method store
+    addressStore.initializeStore()
+    if (addressStore.defaultAddress) {
+      form.address = addressStore.defaultAddress.address
+    }
   })
 
 
@@ -433,6 +438,7 @@ import { Delete, Plus, Close, Warning } from '@element-plus/icons-vue'
   const cartStore = useCartStore()
   const orderStore = useOrderStore()
   const paymentMethodStore = usePaymentMethodStore()
+  const addressStore = useAddressStore()
   
   // Refs
   const couponCode = ref('')

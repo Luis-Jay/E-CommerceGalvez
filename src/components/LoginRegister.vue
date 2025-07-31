@@ -200,8 +200,80 @@ const form = ref({
 
 // Social login functions
 function loginWithGoogle() {
-  console.log('Google login clicked')
-  // Implement Google OAuth here
+  // Open fake Google sign-in window
+  const googleWindow = window.open(
+    '/google-signin',
+    'googleSignIn',
+    'width=400,height=600,scrollbars=yes,resizable=yes'
+  )
+  
+  if (!googleWindow) {
+    ElMessage.error('Please allow popups to sign in with Google')
+    return
+  }
+
+  // Listen for messages from the Google sign-in window
+  const handleMessage = (event: MessageEvent) => {
+    if (event.origin !== window.location.origin) return
+    
+    if (event.data.type === 'GOOGLE_SIGNIN_SUCCESS') {
+      const userData = event.data.user
+      
+      // Close the popup window
+      googleWindow.close()
+      
+      // Remove the event listener
+      window.removeEventListener('message', handleMessage)
+      
+      // Sign in the user
+      handleGoogleSignIn(userData)
+    } else if (event.data.type === 'GOOGLE_SIGNIN_CANCEL') {
+      // Close the popup window
+      googleWindow.close()
+      
+      // Remove the event listener
+      window.removeEventListener('message', handleMessage)
+    }
+  }
+  
+  window.addEventListener('message', handleMessage)
+}
+
+function handleGoogleSignIn(userData: any) {
+  try {
+    const authStore = useAuthStore()
+    
+    // Check if user already exists
+    const existingUser = authStore.users.find(u => u.email === userData.email)
+    
+    if (existingUser) {
+      // User exists, log them in
+      authStore.loginUser(userData.email, userData.password)
+      ElMessage.success(`Welcome back, ${userData.name}!`)
+    } else {
+      // Create new user account
+      const newUser = {
+        username: userData.name,
+        email: userData.email,
+        password: userData.password, // In real app, this would be handled differently
+        phone: userData.phone || '',
+        address: '',
+        cartItems: [],
+        orders: [],
+        savedAddresses: []
+      }
+      
+      authStore.registerUser(newUser)
+      ElMessage.success(`Welcome, ${userData.name}! Your account has been created.`)
+    }
+    
+    // Close the login modal
+    uiStore.showLoginModal = false
+    
+  } catch (error) {
+    console.error('Google sign-in error:', error)
+    ElMessage.error('Failed to sign in with Google')
+  }
 }
 
 function loginWithFacebook() {
@@ -273,6 +345,9 @@ async function handleLogin() {
   console.error('Form validation failed:', error)
 }
  }
+
+
+ 
 </script>
 
 <style scoped>

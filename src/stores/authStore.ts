@@ -15,6 +15,7 @@ interface User {
   address: string
   cartItems: CartItem[]
   orders: any[] // Changed from Order to any[] as Order type is not defined
+  savedAddresses?: any[] // Add savedAddresses property
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -40,7 +41,8 @@ export const useAuthStore = defineStore('auth', () => {
     phone: '0909090909',
     address: '1234567890',
     cartItems: [],
-    orders: []
+    orders: [],
+    savedAddresses: []
   }
 
   // Initialize localStorage on first load
@@ -52,7 +54,18 @@ export const useAuthStore = defineStore('auth', () => {
   } else {
     try {
       const parsed = JSON.parse(stored)
-      users.value = Array.isArray(parsed) ? parsed : [parsed]
+      const userArray = Array.isArray(parsed) ? parsed : [parsed]
+      
+      // Migrate existing users to include savedAddresses
+      const migratedUsers = userArray.map(user => ({
+        ...user,
+        savedAddresses: user.savedAddresses || []
+      }))
+      
+      users.value = migratedUsers
+      
+      // Update localStorage with migrated data
+      localStorage.setItem('users', JSON.stringify(migratedUsers))
     } catch (error) {
       console.error('Error parsing users:', error)
     }
@@ -149,7 +162,13 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
-    users.value.push(user)
+    // Ensure new user has savedAddresses initialized
+    const newUser = {
+      ...user,
+      savedAddresses: user.savedAddresses || []
+    }
+
+    users.value.push(newUser)
 
     console.log('Users after push:', users.value)
     localStorage.setItem('users', JSON.stringify(users.value))

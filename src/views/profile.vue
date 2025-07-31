@@ -195,9 +195,21 @@
                               >Coordinates: {{ address.latitude.toFixed(4) }},
                               {{ address.longitude.toFixed(4) }}</span
                             >
+                            <span v-if="address.isDefault" 
+                            class="default-address-badge">Default Address</span
+                            >
                           </div>
                         </div>
                         <div class="address-actions">
+                         <el-button
+                            size="small"
+                            type="success"
+                            @click="setDefaultAddress(address.address)"
+                          >
+                            <el-icon><Location /></el-icon>
+                            Set as Default
+                          </el-button>
+
                           <el-button
                             size="small"
                             type="primary"
@@ -324,6 +336,7 @@
                     v-for="(address, index) in addressStore.savedAddresses"
                     :key="index"
                     class="saved-address-item"
+                    :class="{ 'default-address-item': address.isDefault }"
                   >
                     <div class="address-info">
                       <div class="address-text">{{ address.address }}</div>
@@ -338,9 +351,21 @@
                           >Coordinates: {{ address.latitude.toFixed(4) }},
                           {{ address.longitude.toFixed(4) }}</span
                         >
+                        <span v-if="address.isDefault" 
+                        class="default-address-badge">Default Address</span
+                        >
                       </div>
                     </div>
                     <div class="address-actions">
+                      <el-button
+                        size="small"
+                        :type="address.isDefault ? 'success' : 'default'"
+                        @click="setDefaultAddress(address.address)"
+                        :disabled="address.isDefault"
+                      >
+                        <el-icon><Location /></el-icon>
+                        {{ address.isDefault ? 'Default Address' : 'Set as Default' }}
+                      </el-button>
                       <el-button
                         size="small"
                         type="primary"
@@ -600,6 +625,7 @@ import { useAddressStore } from '@/stores/addressStore'
 import Address from '@/components/address.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PaymentMethod from '@/components/PaymentMethod.vue'
+import { showMessageOnce } from '@/utils/showMessageOnce'
 
 
 // Store instances
@@ -635,6 +661,7 @@ const originalProfileForm = ref({ ...profileForm.value })
 // Initialize stores on component mount
 onMounted(() => {
   addressStore.initializeStore()
+  addressStore.setCurrentUserEmail(currentUserEmail)
   paymentMethodStore.initializeStore()
 })
 
@@ -833,11 +860,19 @@ const checkout = () => {
   cart.clearCart()
 }
 
+const setDefaultAddress = (addressString: string) => {
+  try {
+    addressStore.setDefaultAddress(addressString)
+    showMessageOnce('Address set as default successfully!', 'success')
+    console.log('Updated addresses:', addressStore.savedAddresses.values)
+  } catch (error) {
+    showMessageOnce('Failed to set address as default', 'error')
+    console.error('Error setting default address:', error)
+  }
+}
+
 // Route handling
 const route = useRoute()
-
-// Initialize address store
-addressStore.initializeStore()
 
 watch(
   () => route.query.section,
@@ -1256,6 +1291,24 @@ f57224
 .orders-content {
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* Default address badge styling */
+.default-address-badge {
+  background-color: #67c23a;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Default address item styling */
+.default-address-item {
+  border-left: 4px solid #67c23a;
+  background-color: #f0f9ff;
 }
 
 /* Responsive adjustments */
