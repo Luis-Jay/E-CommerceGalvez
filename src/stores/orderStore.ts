@@ -27,7 +27,7 @@ export const useOrderStore = defineStore('order', {
       const newOrder: Order = {
         orderId,
         date,
-        status: 'Paid',
+        status: 'Paid', 
         total,
         items
       }

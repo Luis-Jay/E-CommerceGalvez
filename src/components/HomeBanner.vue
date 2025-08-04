@@ -38,7 +38,7 @@
       router.push({ path: '/profile', query: { section: 'lazada-wallet' } })
       break
     case 'vouchers':
-      router.push({ path: '/profile', query: { section: 'vouchers' } })
+      router.push({ path: '/vouchers' }) 
       break
     case 'lazmall':
       router.push({ path: '/profile', query: { section: 'lazmall' } })

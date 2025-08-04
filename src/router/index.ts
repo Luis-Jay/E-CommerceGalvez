@@ -47,6 +47,11 @@ const router = createRouter({
       name: 'google-signin',
       component: () => import('@/components/GoogleSignIn.vue'),
     },
+    {
+      path: '/vouchers',
+      name: 'vouchers',
+      component: () => import('@/components/voucher.vue'),
+    }
   ],
 })
 

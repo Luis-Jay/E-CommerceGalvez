@@ -193,128 +193,133 @@
 
         </el-main>
   
-        <!-- Right Column - Payment Summary -->
-        <el-aside class="payment-summary">
-          <h2>Payment Summary</h2>
-          <el-card>
-            <div class="account-info">
-              <h3>UNREGISTERED ACCOUNT</h3>
-              <div class="transaction-info">
-                <span>Transaction code</span>
-                <span>VC115665</span>
-              </div>
-            </div>
-  
-            <div class="coupon-section">
-              <el-input 
-                v-model="couponCode" 
-                placeholder="COUPON CODE" 
-                class="coupon-input"
-                @keyup.enter="applyCoupon"
-              >
-                <template #append>
-                  <el-button type="primary" @click="applyCoupon">Apply</el-button>
-                </template>
-              </el-input>
-              <div v-if="couponDiscount > 0" class="coupon-success">
-                <el-alert 
-                  :title="`Coupon applied! ${(couponDiscount * 100)}% discount`" 
-                  type="success" 
-                  :closable="false"
-                  show-icon
-                />
-              </div>
-            </div>
-  
-            <div class="order-summary">
-              <div class="summary-row">
-                <span>Subtotal ({{ cartStore.totalItems }} items)</span>
-                <span>{{ formatPrice(cartStore.subtotal) }}</span>
-              </div>
-              <div class="summary-row">
-                <span>Delivery</span>
-                <span>{{ formatPrice(cartStore.deliveryPrice) }}</span>
-              </div>
-              <div class="summary-row">
-                <span>Additional Services</span>
-                <span class="blue-text">{{ formatPrice(cartStore.servicesTotal) }}</span>
-              </div>
-              <div v-if="couponDiscount > 0" class="summary-row discount">
-                <span>Discount ({{ (couponDiscount * 100) }}%)</span>
-                <span class="discount-amount">-{{ formatPrice(cartStore.subtotal * couponDiscount) }}</span>
-              </div>
-              <div class="summary-row total">
-                <span>Total Amount</span>
-                <span>{{ formatPrice(cartStore.finalTotal(couponDiscount)) }}</span>
-              </div>
-            </div>
-  
-            <div class="sale-timer">
-              <p>SALE EXPIRING IN: {{ timeLeft }}</p>
-            </div>
-  
-            <div class="additional-services">
-              <h3>Additional Services</h3>
-              <div class="service-item">
-                <div class="service-info">
-                  <h4>Care+ Package</h4>
-                  <p>One year of additional care</p>
-                </div>
-                <div class="service-price">
-                  <span>{{ formatPrice(500) }}</span>
-                  <el-switch 
-                    v-model="cartStore.services.carePackage" 
-                  />
-                </div>
-              </div>
-              <div class="service-item">
-                <div class="service-info">
-                  <h4>Environment Friendly</h4>
-                  <p>Add some tip for earth care</p>
-                </div>
-                <div class="service-price">
-                  <span>{{ formatPrice(100) }}</span>
-                  <el-switch 
-                    v-model="cartStore.services.environmentFriendly" 
-                  />
-                </div>
-              </div>
-              <div class="service-item">
-                <div class="service-info">
-                  <h4>Golden Guard</h4>
-                  <p>30 days more for return</p>
-                </div>
-                <div class="service-price">
-                  <span>{{ formatPrice(250) }}</span>
-                  <el-switch 
-                    v-model="cartStore.services.goldenGuard" 
-                  />
-                </div>
-              </div>
-            </div>
-  
-            <el-button 
-              type="primary" 
-              size="large" 
-              class="checkout-button"
-              @click="handleCheckout"
-              :disabled="cartStore.items.length === 0"
-            >
-              Proceed to Checkout - 
-              {{ cartStore.items.length === 0 
-                ? 'No orders' 
-                : formatPrice(cartStore.finalTotal(couponDiscount)) 
-              }}
-            </el-button>
+<!-- Right Column - Payment Summary -->
+<el-aside class="payment-summary">
+  <h2>Payment Summary</h2>
+  <el-card>
+    <!-- Account Info -->
+    <div class="account-info">
+      <h3>UNREGISTERED ACCOUNT</h3>
+      <div class="transaction-info">
+        <span>Transaction code</span>
+        <span>VC115665</span>
+      </div>
+    </div>
 
-            <CheckoutDialog 
-            :visible="showCheckout"
-            @close="showCheckout = false"
-            @paymentSuccess="handlePaymentSuccess"
-          />
+    <!-- Coupon Input -->
+    <div class="coupon-section">
+      <el-input 
+        v-model="cartStore.couponCode"
+        placeholder="COUPON CODE" 
+        class="coupon-input"
+        @keyup.enter="applyCoupon"
+      >
+        <template #append>
+          <el-button type="primary" @click="applyCoupon">Apply</el-button>
+        </template>
+      </el-input>
 
-          </el-card>
-        </el-aside>
+      <div v-if="cartStore.couponDiscount > 0" class="coupon-success">
+        <el-alert 
+          :title="`Coupon applied! ${(cartStore.couponDiscount * 100)}% discount`" 
+          type="success" 
+          :closable="false"
+          show-icon
+        />
+      </div>  
+    </div>
+
+    <!-- Order Summary -->
+    <div class="order-summary">
+      <div class="summary-row">
+        <span>Subtotal ({{ cartStore.totalItems }} items)</span>
+        <span>{{ formatPrice(cartStore.subtotal) }}</span>
+      </div>
+      <div class="summary-row">
+        <span>Delivery</span>
+        <span>{{ formatPrice(cartStore.deliveryPrice) }}</span>
+      </div>
+      <div class="summary-row">
+        <span>Additional Services</span>
+        <span class="blue-text">{{ formatPrice(cartStore.servicesTotal) }}</span>
+      </div>
+      <div 
+        v-if="cartStore.couponDiscount > 0" 
+        class="summary-row discount"
+      >
+        <span>Discount ({{ (cartStore.couponDiscount * 100).toFixed(0) }}%)</span>
+        <span class="discount-amount">-{{ formatPrice(cartStore.subtotal * cartStore.couponDiscount) }}</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total Amount</span>
+        <span>{{ formatPrice(cartStore.finalTotal(cartStore.couponDiscount)) }}</span>
+      </div>
+    </div>
+
+    <!-- Sale Timer -->
+    <div class="sale-timer">
+      <p>SALE EXPIRING IN: {{ timeLeft }}</p>
+    </div>
+
+    <!-- Additional Services -->
+    <div class="additional-services">
+      <h3>Additional Services</h3>
+      <div class="service-item">
+        <div class="service-info">
+          <h4>Care+ Package</h4>
+          <p>One year of additional care</p>
+        </div>
+        <div class="service-price">
+          <span>{{ formatPrice(500) }}</span>
+          <el-switch v-model="cartStore.services.carePackage" />
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="service-info">
+          <h4>Environment Friendly</h4>
+          <p>Add some tip for earth care</p>
+        </div>
+        <div class="service-price">
+          <span>{{ formatPrice(100) }}</span>
+          <el-switch v-model="cartStore.services.environmentFriendly" />
+        </div>
+      </div>
+      <div class="service-item">
+        <div class="service-info">
+          <h4>Golden Guard</h4>
+          <p>30 days more for return</p>
+        </div>
+        <div class="service-price">
+          <span>{{ formatPrice(250) }}</span>
+          <el-switch v-model="cartStore.services.goldenGuard" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkout Button -->
+    <el-button 
+      type="primary" 
+      size="large" 
+      class="checkout-button"
+      @click="handleCheckout"
+      :disabled="cartStore.items.length === 0"
+    >
+      Proceed to Checkout - 
+      {{ cartStore.items.length === 0 
+        ? 'No orders' 
+        : formatPrice(cartStore.finalTotal(cartStore.couponDiscount)) 
+      }}
+    </el-button>
+
+    <!-- Checkout Dialog -->
+    <CheckoutDialog 
+      :visible="showCheckout"
+      @close="showCheckout = false"
+      @paymentSuccess="handlePaymentSuccess"
+    />
+  </el-card>
+</el-aside>
+
       </el-container>
   
       <div class="for-you">
@@ -393,13 +398,9 @@ const updateTimer = () => {
     timeLeft.value = 'SALE ENDED'
   }
 }
-import { useModalStore } from '@/stores/useModalStore'
-const uiStore = useModalStore()
+
 
 const handleCheckout = async () => {
-  if(!authStore.isAuthenticated) {
-    uiStore.showLoginModal = true
-  }
 
   if(!selectedPayment.value) {
     showMessageOnce('Please select a payment method', 'error')

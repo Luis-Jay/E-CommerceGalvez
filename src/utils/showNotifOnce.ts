@@ -1,23 +1,32 @@
 import { ElNotification } from 'element-plus'
 
-let lastMessage = ''
+const shownKeys = new Set<string>()
 
-export const showNotifOnce = (message: string, type: 'success' | 'warning' | 'info' | 'error' = 'info') => {
-  if (message === lastMessage) return
+export function showNotifOnce({
+  title = 'Notice',
+  message,
+  type = 'info',
+  duration = 3000
+}: {
+  title?: string
+  message: string
+  type?: 'success' | 'warning' | 'info' | 'error'
+  duration?: number
+}) {
+  const key = `${title}-${message}-${type}`
 
-  lastMessage = message
+  if (shownKeys.has(key)) return
+
+  shownKeys.add(key)
 
   ElNotification({
-    title: type.charAt(0).toUpperCase() + type.slice(1),
+    title,
     message,
     type,
-    duration: 5000
+    duration
   })
 
-  // Optional: reset after timeout to allow the same message later
   setTimeout(() => {
-    if (lastMessage === message) {
-      lastMessage = ''
-    }
-  }, 5100)
+    shownKeys.delete(key)
+  }, duration + 100)
 }
