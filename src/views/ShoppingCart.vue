@@ -1,54 +1,64 @@
 <template>
     <div class="checkout-container">
       <AppHeader />
-      
+
       <!-- Main Content -->
       <el-container class="main-content">
         <!-- Left Column - Order Details -->
         <el-main class="order-section">
           <h2>Order</h2>
-          
+          <el-checkbox v-model="selectAll" @change="toggleSelectAll">
+            Select All ({{ selectedItems.length }}/{{ authStore.currentUser?.cartItems?.length || 0 }})
+          </el-checkbox>
+
           <!-- Order Items -->
           <div class="order-items">
             <el-card v-for="item in authStore.currentUser?.cartItems" :key="item.id" class="order-item">
               <div class="item-content">
+                <!-- Item Select Checkbox -->
+                <el-checkbox
+                  v-model="selectedIds"
+                  :label="item.id"
+                  class="item-checkbox"
+                  @change="onItemSelectionChange"
+                />
                 <div class="item-image">
                   <div class="placeholder-image">
                       <img :src="item.image" alt="Product Image" class="product-image">
                   </div>
                   <el-tag v-if="item.onSale" type="danger" class="sale-tag">SALE</el-tag>
                 </div>
-                
+
                 <div class="item-details">
                   <h3>{{ item.name }}</h3>
                   <p>Color: {{ item.color }}</p>
                   <p>Size: {{ item.size }}</p>
                 </div>
-                
+
                 <div class="item-controls">
                   <div class="price-info">
                     <span class="current-price">{{ formatPrice(item.currentPrice) }}</span>
                     <span v-if="item.originalPrice" class="original-price">{{ formatPrice(item.originalPrice) }}</span>
                   </div>
-                  
+
                   <div class="quantity-controls">
                     <span>Quantity:</span>
-                    <el-input-number 
-                      v-model="item.quantity" 
-                      :min="1" 
+                    <el-input-number
+                      v-model="item.quantity"
+                      :min="1"
                       size="small"
                       @change="cartStore.updateItemQuantity(item.id, item.quantity)"
                     />
                   </div>
-                  
+
                   <div class="item-total">
                     <span class="total-label">Total:</span>
                     <span class="total-price">{{ formatPrice(item.currentPrice * item.quantity) }}</span>
                   </div>
-                  
-                  <el-button 
-                    type="danger" 
-                    size="small" 
+
+                  <el-button
+                    type="danger"
+                    size="small"
                     @click="authStore.removeItemFromUserCart(item.id)"
                   >
                     Remove
@@ -57,15 +67,25 @@
               </div>
             </el-card>
           </div>
-  
+
+          <!-- Selection Summary -->
+          <div v-if="(authStore.currentUser?.cartItems?.length ?? 0) > 0" class="selection-summary">
+            <el-alert
+              :title="`${selectedItems.length} of ${authStore.currentUser?.cartItems?.length} items selected for checkout`"
+              type="info"
+              :closable="false"
+              show-icon
+            />
+          </div>
+
           <!-- Delivery Options -->
           <div class="delivery-section">
             <h2>Delivery</h2>
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-card 
-                  class="delivery-option" 
-                  :class="{ selected: cartStore.selectedDelivery === 'DPD' }" 
+                <el-card
+                  class="delivery-option"
+                  :class="{ selected: cartStore.selectedDelivery === 'DPD' }"
                   @click="cartStore.setDelivery('DPD')"
                 >
                   <div class="delivery-content">
@@ -80,9 +100,9 @@
                 </el-card>
               </el-col>
               <el-col :span="12">
-                <el-card 
-                  class="delivery-option" 
-                  :class="{ selected: cartStore.selectedDelivery === 'FedEx' }" 
+                <el-card
+                  class="delivery-option"
+                  :class="{ selected: cartStore.selectedDelivery === 'FedEx' }"
                   @click="cartStore.setDelivery('FedEx')"
                 >
                   <div class="delivery-content">
@@ -99,9 +119,9 @@
             </el-row>
             <el-row :gutter="20" class="delivery-row">
               <el-col :span="12">
-                <el-card 
-                  class="delivery-option" 
-                  :class="{ selected: cartStore.selectedDelivery === 'UPS' }" 
+                <el-card
+                  class="delivery-option"
+                  :class="{ selected: cartStore.selectedDelivery === 'UPS' }"
                   @click="cartStore.setDelivery('UPS')"
                 >
                   <div class="delivery-content">
@@ -116,9 +136,9 @@
                 </el-card>
               </el-col>
               <el-col :span="12">
-                <el-card 
-                  class="delivery-option" 
-                  :class="{ selected: cartStore.selectedDelivery === 'Collect' }" 
+                <el-card
+                  class="delivery-option"
+                  :class="{ selected: cartStore.selectedDelivery === 'Collect' }"
                   @click="cartStore.setDelivery('Collect')"
                 >
                   <div class="delivery-content">
@@ -134,199 +154,197 @@
               </el-col>
             </el-row>
           </div>
+
           <h3 class="newsletter-title">Stay Updated</h3>
-        <el-form label-position="top" class="newsletter-form">
-          <el-form-item label="Subscribe to our newsletter">
-            <el-input
-              placeholder="Enter your email (optional)"
-              class="newsletter-input"
-            />
-          </el-form-item>
-        </el-form>
+          <el-form label-position="top" class="newsletter-form">
+            <el-form-item label="Subscribe to our newsletter">
+              <el-input
+                placeholder="Enter your email (optional)"
+                class="newsletter-input"
+              />
+            </el-form-item>
+          </el-form>
 
-        <!-- Payment method -->
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">Payment Method</h3>
-            </div>
-          </template>
-
-          <div class="payment-methods">
-            <div class="payment-grid">
-              <!-- Cashless Payment Card -->
-              <div class="payment-card" :class="{ active: selectedPayment === 'cashless' }" @click="selectedPayment = 'cashless'">
-                <div class="payment-header">
-                  <div class="payment-logos">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/GCash_logo.svg/2560px-GCash_logo.svg.png" 
-                        alt="GCash" class="payment-logo">
-                    <img src="https://faq.goodwork.ph/wp-content/uploads/2020/08/paymaya.png?w=1024" 
-                        alt="PayMaya" class="payment-logo">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png" 
-                        alt="Visa" class="payment-logo">
-                  </div>
-                  <div class="check-icon" v-if="selectedPayment === 'cashless'">
-                    <el-icon><Check /></el-icon>
-                  </div>
-                </div>
-                <h4 class="payment-title">Cashless Payment</h4>
-                <p class="payment-description">Pay using GCash, PayMaya, or Credit/Debit Card for quick and secure transactions.</p>
+          <!-- Payment method -->
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #333;">Payment Method</h3>
               </div>
+            </template>
 
-              <!-- Cash on Delivery Card -->
-              <div class="payment-card" :class="{ active: selectedPayment === 'cod' }" @click="selectedPayment = 'cod'">
-                <div class="payment-header">
-                  <div class="cod-icon">
-                    <el-icon style="font-size: 32px; color: #52c41a;"><Money /></el-icon>
+            <div class="payment-methods">
+              <div class="payment-grid">
+                <!-- Cashless Payment Card -->
+                <div class="payment-card" :class="{ active: selectedPayment === 'cashless' }" @click="selectedPayment = 'cashless'">
+                  <div class="payment-header">
+                    <div class="payment-logos">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/GCash_logo.svg/2560px-GCash_logo.svg.png"
+                          alt="GCash" class="payment-logo">
+                      <img src="https://faq.goodwork.ph/wp-content/uploads/2020/08/paymaya.png?w=1024"
+                          alt="PayMaya" class="payment-logo">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/200px-Visa_Inc._logo.svg.png"
+                          alt="Visa" class="payment-logo">
+                    </div>
+                    <div class="check-icon" v-if="selectedPayment === 'cashless'">
+                      <el-icon><Check /></el-icon>
+                    </div>
                   </div>
-                  <div class="check-icon" v-if="selectedPayment === 'cod'">
-                    <el-icon><Check /></el-icon>
-                  </div>
+                  <h4 class="payment-title">Cashless Payment</h4>
+                  <p class="payment-description">Pay using GCash, PayMaya, or Credit/Debit Card for quick and secure transactions.</p>
                 </div>
-                <h4 class="payment-title">Cash on Delivery</h4>
-                <p class="payment-description">Pay with cash when your order is delivered to your door.</p>
+
+                <!-- Cash on Delivery Card -->
+                <div class="payment-card" :class="{ active: selectedPayment === 'cod' }" @click="selectedPayment = 'cod'">
+                  <div class="payment-header">
+                    <div class="cod-icon">
+                      <el-icon style="font-size: 32px; color: #52c41a;"><Money /></el-icon>
+                    </div>
+                    <div class="check-icon" v-if="selectedPayment === 'cod'">
+                      <el-icon><Check /></el-icon>
+                    </div>
+                  </div>
+                  <h4 class="payment-title">Cash on Delivery</h4>
+                  <p class="payment-description">Pay with cash when your order is delivered to your door.</p>
+                </div>
               </div>
             </div>
-          </div>
-        </el-card>
-
-
+          </el-card>
         </el-main>
-  
-<!-- Right Column - Payment Summary -->
-<el-aside class="payment-summary">
-  <h2>Payment Summary</h2>
-  <el-card>
-    <!-- Account Info -->
-    <div class="account-info">
-      <h3>UNREGISTERED ACCOUNT</h3>
-      <div class="transaction-info">
-        <span>Transaction code</span>
-        <span>VC115665</span>
-      </div>
-    </div>
 
-    <!-- Coupon Input -->
-    <div class="coupon-section">
-      <el-input 
-        v-model="cartStore.couponCode"
-        placeholder="COUPON CODE" 
-        class="coupon-input"
-        @keyup.enter="applyCoupon"
-      >
-        <template #append>
-          <el-button type="primary" @click="applyCoupon">Apply</el-button>
-        </template>
-      </el-input>
+        <!-- Right Column - Payment Summary -->
+        <el-aside class="payment-summary">
+          <h2>Payment Summary</h2>
+          <el-card>
+            <!-- Account Info -->
+            <div class="account-info">
+              <h3>UNREGISTERED ACCOUNT</h3>
+              <div class="transaction-info">
+                <span>Transaction code</span>
+                <span>VC115665</span>
+              </div>
+            </div>
 
-      <div v-if="cartStore.couponDiscount > 0" class="coupon-success">
-        <el-alert 
-          :title="`Coupon applied! ${(cartStore.couponDiscount * 100)}% discount`" 
-          type="success" 
-          :closable="false"
-          show-icon
-        />
-      </div>  
-    </div>
+            <!-- Coupon Input -->
+            <div class="coupon-section">
+              <el-input
+                v-model="couponCode"
+                placeholder="COUPON CODE"
+                class="coupon-input"
+                @keyup.enter="applyCoupon"
+              >
+                <template #append>
+                  <el-button type="primary" @click="applyCoupon">Apply</el-button>
+                </template>
+              </el-input>
 
-    <!-- Order Summary -->
-    <div class="order-summary">
-      <div class="summary-row">
-        <span>Subtotal ({{ cartStore.totalItems }} items)</span>
-        <span>{{ formatPrice(cartStore.subtotal) }}</span>
-      </div>
-      <div class="summary-row">
-        <span>Delivery</span>
-        <span>{{ formatPrice(cartStore.deliveryPrice) }}</span>
-      </div>
-      <div class="summary-row">
-        <span>Additional Services</span>
-        <span class="blue-text">{{ formatPrice(cartStore.servicesTotal) }}</span>
-      </div>
-      <div 
-        v-if="cartStore.couponDiscount > 0" 
-        class="summary-row discount"
-      >
-        <span>Discount ({{ (cartStore.couponDiscount * 100).toFixed(0) }}%)</span>
-        <span class="discount-amount">-{{ formatPrice(cartStore.subtotal * cartStore.couponDiscount) }}</span>
-      </div>
-      <div class="summary-row total">
-        <span>Total Amount</span>
-        <span>{{ formatPrice(cartStore.finalTotal(cartStore.couponDiscount)) }}</span>
-      </div>
-    </div>
+              <div v-if="couponDiscount > 0" class="coupon-success">
+                <el-alert
+                  :title="`Coupon applied! ${(couponDiscount * 100)}% discount`"
+                  type="success"
+                  :closable="false"
+                  show-icon
+                />
+              </div>
+            </div>
 
-    <!-- Sale Timer -->
-    <div class="sale-timer">
-      <p>SALE EXPIRING IN: {{ timeLeft }}</p>
-    </div>
+            <!-- Order Summary -->
+            <div class="order-summary">
+              <div class="summary-row">
+                <span>Subtotal ({{ selectedItems.length }} selected items)</span>
+                <span>{{ formatPrice(selectedSubtotal) }}</span>
+              </div>
+              <div class="summary-row">
+                <span>Delivery</span>
+                <span>{{ formatPrice(getDeliveryPrice()) }}</span>
+              </div>
+              <div class="summary-row">
+                <span>Additional Services</span>
+                <span class="blue-text">{{ formatPrice(cartStore.servicesTotal) }}</span>
+              </div>
+              <div
+                v-if="couponDiscount > 0"
+                class="summary-row discount"
+              >
+                <span>Discount ({{ (couponDiscount * 100).toFixed(0) }}%)</span>
+                <span class="discount-amount">-{{ formatPrice(selectedSubtotal * couponDiscount) }}</span>
+              </div>
+              <div class="summary-row total">
+                <span>Total Amount</span>
+                <span>{{ formatPrice(selectedFinalTotal) }}</span>
+              </div>
+            </div>
 
-    <!-- Additional Services -->
-    <div class="additional-services">
-      <h3>Additional Services</h3>
-      <div class="service-item">
-        <div class="service-info">
-          <h4>Care+ Package</h4>
-          <p>One year of additional care</p>
-        </div>
-        <div class="service-price">
-          <span>{{ formatPrice(500) }}</span>
-          <el-switch v-model="cartStore.services.carePackage" />
-        </div>
-      </div>
-      <div class="service-item">
-        <div class="service-info">
-          <h4>Environment Friendly</h4>
-          <p>Add some tip for earth care</p>
-        </div>
-        <div class="service-price">
-          <span>{{ formatPrice(100) }}</span>
-          <el-switch v-model="cartStore.services.environmentFriendly" />
-        </div>
-      </div>
-      <div class="service-item">
-        <div class="service-info">
-          <h4>Golden Guard</h4>
-          <p>30 days more for return</p>
-        </div>
-        <div class="service-price">
-          <span>{{ formatPrice(250) }}</span>
-          <el-switch v-model="cartStore.services.goldenGuard" />
-        </div>
-      </div>
-    </div>
+            <!-- Sale Timer -->
+            <div class="sale-timer">
+              <p>SALE EXPIRING IN: {{ timeLeft }}</p>
+            </div>
 
-    <!-- Checkout Button -->
-    <el-button 
-      type="primary" 
-      size="large" 
-      class="checkout-button"
-      @click="handleCheckout"
-      :disabled="cartStore.items.length === 0"
-    >
-      Proceed to Checkout - 
-      {{ cartStore.items.length === 0 
-        ? 'No orders' 
-        : formatPrice(cartStore.finalTotal(cartStore.couponDiscount)) 
-      }}
-    </el-button>
+            <!-- Additional Services -->
+            <div class="additional-services">
+              <h3>Additional Services</h3>
+              <div class="service-item">
+                <div class="service-info">
+                  <h4>Care+ Package</h4>
+                  <p>One year of additional care</p>
+                </div>
+                <div class="service-price">
+                  <span>{{ formatPrice(500) }}</span>
+                  <el-switch v-model="cartStore.services.carePackage" />
+                </div>
+              </div>
+              <div class="service-item">
+                <div class="service-info">
+                  <h4>Environment Friendly</h4>
+                  <p>Add some tip for earth care</p>
+                </div>
+                <div class="service-price">
+                  <span>{{ formatPrice(100) }}</span>
+                  <el-switch v-model="cartStore.services.environmentFriendly" />
+                </div>
+              </div>
+              <div class="service-item">
+                <div class="service-info">
+                  <h4>Golden Guard</h4>
+                  <p>30 days more for return</p>
+                </div>
+                <div class="service-price">
+                  <span>{{ formatPrice(250) }}</span>
+                  <el-switch v-model="cartStore.services.goldenGuard" />
+                </div>
+              </div>
+            </div>
 
-    <!-- Checkout Dialog -->
-    <CheckoutDialog 
-      :visible="showCheckout"
-      @close="showCheckout = false"
-      @paymentSuccess="handlePaymentSuccess"
-    />
-  </el-card>
-</el-aside>
+            <!-- Checkout Button -->
+            <el-button
+              type="primary"
+              size="large"
+              class="checkout-button"
+              @click="handleCheckout"
+              :disabled="selectedItems.length === 0"
+            >
+              Proceed to Checkout -
+              {{ selectedItems.length === 0
+                ? 'Select items'
+                : formatPrice(selectedFinalTotal)
+              }}
+            </el-button>
 
+            <!-- Checkout Dialog -->
+            <CheckoutDialog
+              :visible="showCheckout"
+              @close="showCheckout = false"
+              @paymentSuccess="handlePaymentSuccess"
+            />
+          </el-card>
+        </el-aside>
       </el-container>
-  
+
       <div class="for-you">
         <ForYou />
       </div>
     </div>
-  </template>
+</template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -337,12 +355,23 @@ import ForYou from '../components/ForYou.vue'
 import { useAuthStore } from '@/stores/authStore'
 import CheckoutDialog from '@/components/Checkout.vue'
 import { useOrderStore } from '@/stores/orderStore'
+import { Check, Money } from '@element-plus/icons-vue'
+import { showMessageOnce } from '@/utils/showMessageOnce'
+import type { FormInstance } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import router from '@/router'
+import { watch as vueWatch } from 'vue'
+
 const showCheckout = ref(false)
+
 // Store
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const orderStore = useOrderStore()
 
+// Selection logic
+const selectedIds = ref<number[]>([])
+const selectAll = ref(false)
 
 // Reactive data
 const couponCode = ref('')
@@ -354,15 +383,39 @@ const paymentForm = ref({
   phone: '',
   address: ''
 })
-console.log('my cart:', cartStore.items)
-console.log('cart items:', cartStore.items)
+
+// Define the payment method type
+type PaymentMethod = 'cashless' | 'cod' | ''
+const selectedPayment = ref<PaymentMethod>('')
+
 // Sale timer
-const saleEndTime = ref(new Date().getTime() + (21 * 60 * 60 * 1000) + (31 * 60 * 1000)) // 21 hours 31 minutes
+const saleEndTime = ref(new Date().getTime() + (21 * 60 * 60 * 1000) + (31 * 60 * 1000))
 const timeLeft = ref('')
+
+// Computed properties for selected items
+const selectedItems = computed(() =>
+  authStore.currentUser?.cartItems?.filter(item => selectedIds.value.includes(item.id)) || []
+)
+
+const selectedSubtotal = computed(() =>
+  selectedItems.value.reduce((sum, item) => sum + (item.currentPrice * item.quantity), 0)
+)
+
+const selectedFinalTotal = computed(() => {
+  const subtotal = selectedSubtotal.value
+  const discountAmount = subtotal * couponDiscount.value
+  const finalSubtotal = subtotal - discountAmount
+  return finalSubtotal + getDeliveryPrice() + cartStore.servicesTotal
+})
 
 // Methods
 const formatPrice = (price: number): string => {
   return `₱${price.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+const getDeliveryPrice = (): number => {
+  // Only charge delivery if items are selected
+  return selectedItems.value.length > 0 ? cartStore.deliveryPrice : 0
 }
 
 const applyCoupon = () => {
@@ -372,9 +425,9 @@ const applyCoupon = () => {
     'STUDENT': 0.20,
     'FIRST': 0.25
   }
-  
+
   const code = couponCode.value.toUpperCase()
-  
+
   if (validCoupons[code]) {
     couponDiscount.value = validCoupons[code]
     ElMessage.success(`Coupon applied! ${(validCoupons[code] * 100)}% discount`)
@@ -382,196 +435,176 @@ const applyCoupon = () => {
     couponDiscount.value = 0
     ElMessage.error('Invalid coupon code')
   }
-  }
+}
 
+// Selection methods
+function toggleSelectAll(val: boolean) {
+  if (val) {
+    selectedIds.value = authStore.currentUser?.cartItems?.map(item => item.id) || []
+  } else {
+    selectedIds.value = []
+  }
+}
+
+function onItemSelectionChange() {
+  // This function will be called whenever an individual item is selected/deselected
+  // The watch effect will handle updating the selectAll checkbox state
+}
+
+// Timer update function
 const updateTimer = () => {
   const now = new Date().getTime()
   const distance = saleEndTime.value - now
-  
+
   if (distance > 0) {
     const hours = Math.floor(distance / (1000 * 60 * 60))
     const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
     const seconds = Math.floor((distance % (1000 * 60)) / 1000)
-    
+
     timeLeft.value = `${hours} HOURS, ${minutes} MINUTES, ${seconds} SECONDS`
   } else {
     timeLeft.value = 'SALE ENDED'
   }
 }
 
-
+// Checkout handling
 const handleCheckout = async () => {
+  if (selectedItems.value.length === 0) {
+    ElMessage.error('Please select at least one item to checkout.')
+    return
+  }
 
-  if(!selectedPayment.value) {
+  if (!selectedPayment.value) {
     showMessageOnce('Please select a payment method', 'error')
     return
   }
 
   if (selectedPayment.value === 'cod') {
-  emit('paymentSuccess') // or call handlePaymentSuccess() if defined
-  await handleCashOnDelivery()
-  return
-}
-
-
+    await handleCashOnDelivery()
+    return
+  }
 
   showCheckout.value = true
 
   // Create a recent order entry
   const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString()
   const orderDate = new Date().toLocaleDateString()
-  const totalAmount = cartStore.finalTotal(couponDiscount.value)
+  const totalAmount = selectedFinalTotal.value
 
-  console.log('showCheckout:', showCheckout.value)
-  
-  // Here you would typically send the order to your backend
   console.log('Order Details:', {
-    items: cartStore.items,
+    items: selectedItems.value,
     delivery: cartStore.selectedDelivery,
     services: cartStore.services,
     customer: paymentForm.value,
-    total: cartStore.finalTotal(couponDiscount.value),
+    total: totalAmount,
     coupon: couponCode.value,
     discount: couponDiscount.value
   })
-  console.log(selectedPayment.value)
 }
 
 const handlePaymentSuccess = () => {
   showCheckout.value = false
   ElMessage.success('Order placed!')
-  // Optionally reload orders or trigger animations
+  // Remove selected items from cart
+  selectedIds.value.forEach(id => {
+    authStore.removeItemFromUserCart(id)
+  })
+  // Clear selection
+  selectedIds.value = []
 }
 
-
-
-import { Check, Money } from '@element-plus/icons-vue'
-import { showMessageOnce } from '@/utils/showMessageOnce'
-
-// Define the payment method type
-type PaymentMethod = 'cashless' | 'cod' | ''
-
-// Reactive variable to store selected payment method
-const selectedPayment = ref<PaymentMethod>('') // Empty by default, or set to 'cashless' for default selection
-
-
-//process of payment
-import type { FormInstance } from 'element-plus'
-import { ElLoading } from 'element-plus'
-import router from '@/router'
-
-  // Types
-  interface CashOnDeliveryForm {
-  email: string
-  country: string
-  address: string
-  city: string
-  zipCode: string
-  phoneNumber: string
-  amount: number
-}
-
-  // Emits
-  interface Emits {
-    (e: 'close'): void
-    (e: 'submit', form: CashOnDeliveryForm): void
-    (e: 'paymentSuccess'): void
-  }
-
-const emit = defineEmits<Emits>()
-const formRef = ref<FormInstance>()
-const isLoading = ref(false)
-const isSuccess = ref(false)
-const isProcessing = ref(false)
-const savePaymentMethod = ref(false)
-
-const proceedToCheckout = () => {
-
-  
-showCheckout.value = true
-
-  // Create a recent order entry
-const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString()
-const orderDate = new Date().toLocaleDateString()
-const totalAmount = cartStore.finalTotal(couponDiscount.value)
-
-
-console.log('showCheckout:', showCheckout.value)
-
-// Here you would typically send the order to your backend
-console.log('Order Details:', {
-  items: cartStore.items,
-  delivery: cartStore.selectedDelivery,
-  services: cartStore.services,
-  customer: paymentForm.value,
-  total: cartStore.finalTotal(couponDiscount.value),
-  coupon: couponCode.value,
-  discount: couponDiscount.value
-})
-}
-
+// Cash on Delivery handling
 const handleCashOnDelivery = async () => {
-  isLoading.value = true;
-  isProcessing.value = true;
+  const isLoading = ref(false)
+  const isProcessing = ref(false)
+
+  isLoading.value = true
+  isProcessing.value = true
 
   const loadingInstance = ElLoading.service({
     text: 'Processing Cash on Delivery order...',
     spinner: 'el-icon-loading',
     background: 'rgba(0, 0, 0, 0.7)',
-  });
+  })
 
   try {
-    // Simulate API delay (optional, adjust as needed)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString();
-    const orderDate = new Date().toISOString().split('T')[0];
-    const totalAmount = cartStore.finalTotal(couponDiscount.value);
-    const itemsCopy = [...cartStore.items];
+    const orderId = 'ORD-' + Math.floor(Math.random() * 1000000).toString()
+    const orderDate = new Date().toISOString().split('T')[0]
+    const totalAmount = selectedFinalTotal.value
+    const itemsCopy = [...selectedItems.value]
 
     // Add to user's orders with 'Pending' status for COD
     authStore.addUserOrder({
       orderId,
       date: orderDate,
-      status: 'Pending', // COD payment is collected on delivery
+      status: 'Pending',
       total: totalAmount,
       items: itemsCopy,
-    });
+    })
 
-    cartStore.clearCart();
+    // Remove selected items from cart
+    selectedIds.value.forEach(id => {
+      authStore.removeItemFromUserCart(id)
+    })
 
     ElMessage({
       message: 'Order placed successfully! Payment will be collected on delivery.',
       type: 'success',
       duration: 3000,
-    });
+    })
 
-    emit('close');
-    couponCode.value = '';
-    couponDiscount.value = 0;
-    isSuccess.value = true;
+    couponCode.value = ''
+    couponDiscount.value = 0
+    selectedIds.value = []
 
-    router.push('/shopping-cart');
+    router.push('/shopping-cart')
   } catch (error) {
-    console.error('Order placement failed:', error);
-    ElMessage.error(' Failed to place order. Please try again.');
+    console.error('Order placement failed:', error)
+    ElMessage.error('Failed to place order. Please try again.')
   } finally {
-    isLoading.value = false;
-    isProcessing.value = false;
-    loadingInstance.close();
+    isLoading.value = false
+    isProcessing.value = false
+    loadingInstance.close()
   }
-};
+}
 
+// Watchers
+const watch = vueWatch
 
+// Update selectAll when selectedIds changes
+watch(
+  () => selectedIds.value,
+  (val) => {
+    const allIds = authStore.currentUser?.cartItems?.map(item => item.id) || []
+    selectAll.value = val.length === allIds.length && allIds.length > 0
+  }
+)
 
-</script> 
+// Update selectedIds if cart changes (e.g., item removed)
+watch(
+  () => authStore.currentUser?.cartItems,
+  (items) => {
+    const allIds = items?.map(item => item.id) || []
+    selectedIds.value = selectedIds.value.filter(id => allIds.includes(id))
+  }
+)
+
+// Initialize timer
+onMounted(() => {
+  updateTimer()
+  const timer = setInterval(updateTimer, 1000)
+  onUnmounted(() => clearInterval(timer))
+})
+</script>
 
 <style scoped>
 * {
     font-family: 'Lato', sans-serif;
 }
 
-.for-you { 
+.for-you {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem 1rem;

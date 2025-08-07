@@ -45,7 +45,7 @@
               :preview-src-list="product.image"
             />
           </div>
-          
+
           <div class="thumbnails-container">
             <div class="thumbnails">
               <el-image
@@ -75,7 +75,7 @@
           <div class="product-info">
             <h1 class="product-title">{{ product.name }}</h1>
             <p class="product-subtitle">{{ product.subtitle }}</p>
-            
+
             <div class="product-description">
               <p class="description-text">
                 {{ truncatedDescription }}
@@ -160,8 +160,8 @@
         <div class="rating-overview">
           <h3 class="section-title">Customer Ratings</h3>
           <div class="rating-bars">
-            <div 
-              v-for="item in product.ratings" 
+            <div
+              v-for="item in product.ratings"
               :key="item.stars"
               class="rating-row"
             >
@@ -185,9 +185,9 @@
           </div>
 
           <div class="reviews-list">
-            <div 
-              v-for="review in reviews" 
-              :key="review.id" 
+            <div
+              v-for="review in reviews"
+              :key="review.id"
               class="review-item"
             >
               <div class="review-avatar">
@@ -195,7 +195,7 @@
                   {{ review.userInitials }}
                 </el-avatar>
               </div>
-              
+
               <div class="review-content">
                 <div class="review-header">
                   <span class="reviewer-name">{{ review.userName }}</span>
@@ -238,7 +238,7 @@ import { showMessageOnce } from '@/utils/showMessageOnce';
 import { useAuthStore } from '@/stores/authStore';
 
 const route = useRoute();
-const productId = route.params.id?.toString(); 
+const productId = route.params.id?.toString();
 const product = ref<any | null>(null);
 
 const isLoading = ref(true);
@@ -248,11 +248,11 @@ const isDescriptionExpanded = ref(false);
 const selectedImage = ref<string>('');
 
 // computed properties
-const displayedImages = computed(() => 
+const displayedImages = computed(() =>
   product.value?.image ? product.value.image.slice(0, maxThumbnails) : []
 );
 
-const isDescriptionLong = computed(() => 
+const isDescriptionLong = computed(() =>
   (product.value?.description?.length || 0) > 100
 );
 
@@ -266,12 +266,12 @@ const truncatedDescription = computed(() => {
 async function fetchProduct() {
   try {
     isLoading.value = true;
-    
+
     // Simulate fetch delay
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     const foundProduct = itemList.find(p => p.id.toString() === productId);
-    
+
     if (!foundProduct) {
       throw new Error('Product not found');
     }
@@ -307,7 +307,7 @@ function addToCart() {
     uiStore.showLoginModal = true
     return
   }
-  
+
   // Transform product data to CartItem format
   const cartItem = {
     id: product.value.id,
@@ -324,11 +324,11 @@ function addToCart() {
     deliveryOption: 'DPD',
     deliveryFee: 0
   }
-  
+
   auth.addToUserCart(cartItem)
   showMessageOnce('Added to cart!', 'success')
   console.log('user cart items:', auth.currentUser?.cartItems)
-  
+
 }
 
 function buyNow() {
@@ -852,43 +852,43 @@ onMounted(() => {
   .product-page {
     padding: 15px;
   }
-  
+
   .product-content {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .product-title {
     font-size: 24px;
   }
-  
+
   .product-actions {
     flex-direction: column;
   }
-  
+
   .stats-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .extra-actions {
     justify-content: space-around;
   }
-  
+
   .reviews-content {
     flex-direction: column;
     gap: 30px;
   }
-  
+
   .rating-overview {
     max-width: 100%;
   }
-  
+
   .review-item {
     padding: 15px;
   }
-  
+
   .review-header {
     flex-direction: column;
     align-items: flex-start;
@@ -900,18 +900,18 @@ onMounted(() => {
   .main-image {
     height: 300px;
   }
-  
+
   .thumbnail {
     width: 60px;
     height: 60px;
   }
-  
+
   .more-thumbnails {
     width: 60px;
     height: 60px;
     font-size: 12px;
   }
-  
+
   .product-actions :deep(.el-button) {
     height: 44px;
     font-size: 14px;

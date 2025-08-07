@@ -49,10 +49,6 @@ export const usePaymentMethodStore = defineStore('paymentMethod', () => {
     savedPaymentMethods.value.length > 0
   )
 
-  const hasEcashPayment = computed(() => 
-    savedPaymentMethods.value.some(method => method.type === 'digital')
-  )
-
   const cardPaymentMethods = computed(() => 
     savedPaymentMethods.value.filter(method => method.type === 'card')
   )
@@ -387,7 +383,6 @@ export const usePaymentMethodStore = defineStore('paymentMethod', () => {
     // Computed
     defaultPaymentMethod,
     hasPaymentMethods,
-    hasEcashPayment,
     cardPaymentMethods,
     digitalPaymentMethods,
 

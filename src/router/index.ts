@@ -51,7 +51,12 @@ const router = createRouter({
       path: '/vouchers',
       name: 'vouchers',
       component: () => import('@/components/voucher.vue'),
-    }
+    },
+    {
+      path: '/shop-all',
+      name: 'ShopallProducts',
+      component: () => import('@/pages/ShopallProducts.vue'),
+    },
   ],
 })
 
