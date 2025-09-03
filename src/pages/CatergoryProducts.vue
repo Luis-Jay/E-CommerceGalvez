@@ -35,7 +35,7 @@
           <div class="product-info">
             <h3 class="product-title">{{ truncateString(cat.name, 35) }}</h3>
             <div class="price-section">
-              <div class="current-price">₱{{ cat.price.toLocaleString() }}</div>
+              <div class="current-price">₱{{ cat.price?.toLocaleString() }}</div>
               <div class="original-price" v-if="cat.originalPrice">₱{{ cat.originalPrice.toLocaleString() }}</div>
               <div class="discount-text" v-if="cat.discount">-{{ cat.discount }}%</div>
             </div>

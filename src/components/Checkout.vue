@@ -244,7 +244,7 @@
                   </div>
 
           <!-- Digital Payment Methods Section -->
-          <div v-if="paymentType === 'digital' && paymentMethodStore.hasEcashPayment" class="digital-payment-section">
+          <div v-if="paymentType === 'digital' && paymentMethodStore.hasPaymentMethods" class="digital-payment-section">
             <h4 class="section-title">Saved Digital Wallets</h4>
             <div class="saved-methods-list">
               <div 

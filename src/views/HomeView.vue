@@ -92,7 +92,6 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue'
 import { Search, ShoppingCart } from '@element-plus/icons-vue'
-import ProductList from '@/products/productList.vue'
 import AppSearch from '@/components/AppSearch.vue'
 import AppDrawer from '@/components/AppDrawer.vue'
 
